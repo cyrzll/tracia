@@ -1,0 +1,27 @@
+# NOTEBOOK VENV IGNORE
+notebooks/bin/
+notebooks/lib/
+notebooks/include/
+notebooks/share/
+notebooks/pyvenv.cfg
+
+# PYTHON CACHE & ARTIFACTS
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# WEBSITE/FRONTEND IGNORE
+website/node_modules/
+website/dist/
+website/.astro/
+
+# GENERAL & OS SPECIFIC
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
