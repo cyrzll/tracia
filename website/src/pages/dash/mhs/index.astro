@@ -234,7 +234,7 @@ try {
               "Final_Score_Std": Number(scoreStd.toFixed(4))
             };
 
-            const predictRes = await fetch("http://127.0.0.1:4000/predict", {
+            const predictRes = await fetch("http://127.0.0.1:4322/predict", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
