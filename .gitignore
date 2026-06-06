@@ -16,6 +16,7 @@ __pycache__/
 website/node_modules/
 website/dist/
 website/.astro/
+website/local.db
 
 # GENERAL & OS SPECIFIC
 .DS_Store
