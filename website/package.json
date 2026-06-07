@@ -6,13 +6,12 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "ASTRO_DATABASE_FILE=local.db ASTRO_DB_REMOTE_URL=file:local.db astro dev --port 4001 --host --remote",
-    "build": "ASTRO_DATABASE_FILE=local.db astro build",
+    "dev": "astro dev --port 4001 --host",
+    "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/db": "^0.21.2",
     "@astrojs/node": "^10.1.2",
     "@astrojs/react": "^5.0.6",
     "@fontsource-variable/geist": "^5.2.9",
