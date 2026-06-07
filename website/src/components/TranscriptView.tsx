@@ -3,23 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
-interface CourseGrade {
-  kdmk: string;
-  nmmk: string;
-  sks: string | number;
-  nl: string;
-}
-
-interface GradeDist {
-  nilai: string;
-  jumlah: number;
-}
-
-interface KhsHeader {
-  total_sks: number;
-  ipk: number;
-  total_nilai: GradeDist[];
-}
+import type { CourseGrade, GradeDist, KhsHeader } from "@/types"
 
 interface TranscriptViewProps {
   transcript: CourseGrade[] | null;

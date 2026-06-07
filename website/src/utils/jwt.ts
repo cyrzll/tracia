@@ -4,12 +4,7 @@ const JWT_SECRET = new TextEncoder().encode(
   import.meta.env.JWT_SECRET || 'super-secret-key-1234-change-me-in-production-tracia-ai'
 );
 
-export interface JWTPayload {
-  uid: string;
-  username: string;
-  name: string;
-  level: string;
-}
+import type { JWTPayload } from '@/types';
 
 /**
  * Generate Access Token (expires in 15 minutes)

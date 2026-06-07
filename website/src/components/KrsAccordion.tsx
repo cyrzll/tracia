@@ -3,19 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
-interface Course {
-  nmmk: string;
-  klpk: string;
-  kdmk: string;
-  sks: number;
-  sts: string;
-}
-
-interface SemesterKrs {
-  ta: string;
-  kode_ta: string;
-  krs: Course[];
-}
+import type { Course, SemesterKrs } from "@/types"
 
 interface KrsAccordionProps {
   currentKrs: SemesterKrs | null;

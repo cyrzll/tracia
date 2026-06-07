@@ -1,10 +1,6 @@
 import type { AstroCookies } from 'astro';
-import { verifyToken, generateAccessToken, type JWTPayload } from './jwt';
-
-export interface AuthResult {
-  isLoggedIn: boolean;
-  adminInfo: JWTPayload | null;
-}
+import { verifyToken, generateAccessToken } from './jwt';
+import type { AuthResult, JWTPayload } from '@/types';
 
 /**
  * Validates the admin session by verifying the JWT Access Token.

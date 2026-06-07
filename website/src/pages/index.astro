@@ -6,7 +6,10 @@ import { validateAdminSession } from '../utils/auth';
 const { isLoggedIn, adminInfo } = await validateAdminSession(Astro.cookies);
 ---
 
-<Layout title="TRACIA AI | Student Risk Predictor">
+<Layout 
+  title="TRACIA AI | Student Risk Predictor"
+  description="Platform analisis berbasis Machine Learning (XGBoost) untuk memantau performa akademis dan mendeteksi dini probabilitas risiko dropout mahasiswa."
+>
   <div class="min-h-screen bg-zinc-50 text-zinc-850 selection:bg-zinc-200 selection:text-black">
     <!-- Top Navigation Bar -->
     <header class="border-b border-zinc-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
