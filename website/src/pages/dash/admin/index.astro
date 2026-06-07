@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { KrsAccordion } from '@/components/KrsAccordion';
 import { TranscriptView } from '@/components/TranscriptView';
-import { db, Mhs, MhsKrs, MhsTranscript, MhsBilling, eq } from 'astro:db';
+import { db } from '../../../lib/db';
+import { Mhs, MhsKrs, MhsTranscript, MhsBilling } from '../../../lib/schema';
+import { eq } from 'drizzle-orm';
 
 // 1. Authentication Check
 const { isLoggedIn, adminInfo } = await validateAdminSession(Astro.cookies);

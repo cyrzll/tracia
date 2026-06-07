@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, User, eq, and } from 'astro:db';
+import { db } from '../../lib/db';
+import { User } from '../../lib/schema';
+import { eq, and } from 'drizzle-orm';
 import { generateAccessToken, generateRefreshToken } from '../../utils/jwt';
 import { validateAdminSession } from '../../utils/auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
