@@ -10,13 +10,32 @@ interface StudentListProps {
   initialSelectedNim: string | null;
 }
 
-export function StudentList({ students, initialSelectedNim }: StudentListProps) {
+export function StudentList({ students: initialStudents, initialSelectedNim }: StudentListProps) {
+  const [students, setStudents] = React.useState<Student[]>(initialStudents);
   const [selectedNim, setSelectedNim] = React.useState<string | null>(initialSelectedNim);
 
   // Sync state if initialSelectedNim changes externally (e.g. initial load)
   React.useEffect(() => {
     setSelectedNim(initialSelectedNim);
   }, [initialSelectedNim]);
+
+  // Polling for real-time updates
+  React.useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const res = await fetch('/api/students');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setStudents(data.students);
+        }
+      } catch (err) {
+        console.error("Failed to poll students:", err);
+      }
+    };
+
+    const interval = setInterval(fetchStudents, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSelect = (nim: string) => {
     setSelectedNim(nim);

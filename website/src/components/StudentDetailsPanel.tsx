@@ -63,8 +63,10 @@ export function StudentDetailsPanel({
   const [isSendingEmail, setIsSendingEmail] = React.useState(false);
 
   // Fetch Student details asynchronously
-  const fetchDetails = async (nim: string) => {
-    setIsLoading(true);
+  const fetchDetails = async (nim: string, silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
     setErrorMsg(null);
     try {
       const res = await fetch(`/api/student-details?nim=${encodeURIComponent(nim)}`);
@@ -81,14 +83,18 @@ export function StudentDetailsPanel({
         setIsHandsHealthy(data.isHandsHealthy);
         setIsFeetHealthy(data.isFeetHealthy);
         setVelocity(data.velocity);
-      } else {
+      } else if (!silent) {
         setErrorMsg(data.error || "Gagal memuat data mahasiswa.");
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg("Koneksi jaringan gagal.");
+      if (!silent) {
+        setErrorMsg("Koneksi jaringan gagal.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -106,6 +112,17 @@ export function StudentDetailsPanel({
       window.removeEventListener("student-selected" as any, handleStudentSelected);
     };
   }, []);
+
+  // Polling for real-time updates
+  React.useEffect(() => {
+    if (!student?.nim) return;
+
+    const interval = setInterval(() => {
+      fetchDetails(student.nim, true);
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [student?.nim]);
 
   const formatRupiah = (value: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -383,43 +400,43 @@ export function StudentDetailsPanel({
 
                     {/* Heart Node */}
                     {isHeartHealthy ? (
-                      <circle cx="60" cy="75" r="4.5" className="fill-zinc-100 stroke-zinc-400" stroke-width="1.5" />
+                      <circle cx="60" cy="75" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
                     ) : (
                       <g>
-                        <circle cx="60" cy="75" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" stroke-width="1" />
-                        <circle cx="60" cy="75" r="3.5" className="fill-zinc-950 stroke-zinc-950" stroke-width="1" />
+                        <circle cx="60" cy="75" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
+                        <circle cx="60" cy="75" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
                       </g>
                     )}
 
                     {/* Hands Nodes */}
                     {isHandsHealthy ? (
                       <>
-                        <circle cx="32" cy="120" r="4.5" className="fill-zinc-100 stroke-zinc-400" stroke-width="1.5" />
-                        <circle cx="88" cy="120" r="4.5" className="fill-zinc-100 stroke-zinc-400" stroke-width="1.5" />
+                        <circle cx="32" cy="120" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
+                        <circle cx="88" cy="120" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
                       </>
                     ) : (
                       <g>
-                        <circle cx="32" cy="120" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" stroke-width="1" />
-                        <circle cx="32" cy="120" r="3.5" className="fill-zinc-950 stroke-zinc-950" stroke-width="1" />
+                        <circle cx="32" cy="120" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
+                        <circle cx="32" cy="120" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
                         
-                        <circle cx="88" cy="120" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" stroke-width="1" />
-                        <circle cx="88" cy="120" r="3.5" className="fill-zinc-950 stroke-zinc-950" stroke-width="1" />
+                        <circle cx="88" cy="120" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
+                        <circle cx="88" cy="120" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
                       </g>
                     )}
 
                     {/* Feet Nodes */}
                     {isFeetHealthy ? (
                       <>
-                        <circle cx="50" cy="200" r="4.5" className="fill-zinc-100 stroke-zinc-400" stroke-width="1.5" />
-                        <circle cx="70" cy="200" r="4.5" className="fill-zinc-100 stroke-zinc-400" stroke-width="1.5" />
+                        <circle cx="50" cy="200" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
+                        <circle cx="70" cy="200" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
                       </>
                     ) : (
                       <g>
-                        <circle cx="50" cy="200" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" stroke-width="1" />
-                        <circle cx="50" cy="200" r="3.5" className="fill-zinc-950 stroke-zinc-950" stroke-width="1" />
+                        <circle cx="50" cy="200" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
+                        <circle cx="50" cy="200" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
                         
-                        <circle cx="70" cy="200" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" stroke-width="1" />
-                        <circle cx="70" cy="200" r="3.5" className="fill-zinc-950 stroke-zinc-950" stroke-width="1" />
+                        <circle cx="70" cy="200" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
+                        <circle cx="70" cy="200" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
                       </g>
                     )}
                   </svg>

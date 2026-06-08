@@ -41,6 +41,33 @@ export const GET: APIRoute = async ({ cookies, url }) => {
 
     const selectedStudent = dbStudents[0];
 
+    // --- REAL-TIME AI PREDICTION CALCULATION ---
+    const getGradeWeight = (grade: string) => {
+      switch (grade.toUpperCase()) {
+        case 'A': return 4.0;
+        case 'AB': return 3.5;
+        case 'B': return 3.0;
+        case 'BC': return 2.5;
+        case 'C': return 2.0;
+        case 'D': return 1.0;
+        case 'E': return 0.0;
+        default: return 0.0;
+      }
+    };
+
+    const gradeToScore = (grade: string) => {
+      switch (grade.toUpperCase()) {
+        case 'A': return 90;
+        case 'AB': return 80;
+        case 'B': return 72;
+        case 'BC': return 65;
+        case 'C': return 58;
+        case 'D': return 50;
+        case 'E': return 30;
+        default: return 75;
+      }
+    };
+
     // 4. Reconstruct KRS structure
     const krsMap = new Map<string, any[]>();
     dbKrs.forEach(row => {
@@ -97,7 +124,49 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       total_nilai
     };
 
-    // 6. Reconstruct Billing format
+    // 6. Calculate ML Features
+    const activeSemester = (currentKrsData ? 1 : 0) + pastKrsData.length;
+    const courseGrades = new Map();
+    transcriptData.forEach((c) => {
+      courseGrades.set(c.kdmk, c.nl);
+    });
+
+    const semesterGpas: number[] = [];
+    pastKrsData.sort((a, b) => a.kode_ta.localeCompare(b.kode_ta)).forEach(sem => {
+      let totalSksSem = 0;
+      let totalPoints = 0;
+      sem.krs.forEach((c: any) => {
+        const grade = courseGrades.get(c.kdmk);
+        if (grade) {
+          totalSksSem += Number(c.sks);
+          totalPoints += getGradeWeight(grade) * Number(c.sks);
+        }
+      });
+      if (totalSksSem > 0) {
+        semesterGpas.push(totalPoints / totalSksSem);
+      }
+    });
+
+    let gpaTrend = 0.0;
+    if (semesterGpas.length >= 2) {
+      gpaTrend = semesterGpas[semesterGpas.length - 1] - semesterGpas[semesterGpas.length - 2];
+    }
+
+    const scores = transcriptData.map(c => gradeToScore(c.nl));
+    const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 75;
+    const highestScore = scores.length > 0 ? Math.max(...scores) : 75;
+    const lowestScore = scores.length > 0 ? Math.min(...scores) : 75;
+
+    let scoreStd = 0.0;
+    if (scores.length > 1) {
+      const mean = averageScore;
+      const variance = scores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scores.length;
+      scoreStd = Math.sqrt(variance);
+    }
+
+    const failedCourses = transcriptData.filter((c) => c.nl === 'D' || c.nl === 'E').length;
+    
+    // 7. Reconstruct Billing format
     let billingData = null;
     if (dbBilling.length > 0) {
       const b = dbBilling[0];
@@ -118,11 +187,59 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       };
     }
 
-    // 7. Set Visual Indicators
+    const paymentStatus = billingData && billingData.status.includes("TERBAYAR") ? "Paid" : "Unpaid";
+    const velocity = activeSemester > 1 ? totalSks / (activeSemester - 1) : totalSks;
+
+    // --- CALL ML API ---
+    let latestRiskProb = selectedStudent.risk_probability;
+    let latestRiskLevel = selectedStudent.risk_level;
+
+    try {
+      const payload = {
+        "Semester": activeSemester,
+        "Current_GPA": selectedStudent.gpa,
+        "GPA_Trend": Number(gpaTrend.toFixed(4)),
+        "Attendance_Rate": 0.95,
+        "Credit_Accumulation_Velocity": Number(velocity.toFixed(2)),
+        "Failed_Course_Count": failedCourses,
+        "Total_Credits_Completed": totalSks,
+        "Payment_Status": paymentStatus,
+        "Average_Final_Score": Number(averageScore.toFixed(2)),
+        "Highest_Final_Score": highestScore,
+        "Lowest_Final_Score": lowestScore,
+        "Final_Score_Std": Number(scoreStd.toFixed(4))
+      };
+
+      const predictRes = await fetch("http://127.0.0.1:4322/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (predictRes.ok) {
+        const pred = await predictRes.json();
+        latestRiskProb = pred.dropout_risk_probability;
+        latestRiskLevel = pred.risk_level;
+
+        // Sync to Database
+        await db.update(Mhs).set({
+          risk_probability: latestRiskProb,
+          risk_level: latestRiskLevel,
+          updatedAt: new Date()
+        }).where(eq(Mhs.nim, nim));
+        
+        // Update local object for response
+        selectedStudent.risk_probability = latestRiskProb;
+        selectedStudent.risk_level = latestRiskLevel;
+      }
+    } catch (e) {
+      console.error("ML Prediction failed in API:", e);
+    }
+
+    // 8. Set Visual Indicators
     const isBrainHealthy = selectedStudent.gpa >= 3.0;
-    const isHeartHealthy = !!(billingData && billingData.status.includes("TERBAYAR"));
-    const isHandsHealthy = transcriptData.filter(c => c.nl === 'D' || c.nl === 'E').length === 0;
-    const velocity = selectedStudent.semester > 1 ? selectedStudent.sks / (selectedStudent.semester - 1) : selectedStudent.sks;
+    const isHeartHealthy = paymentStatus === "Paid";
+    const isHandsHealthy = failedCourses === 0;
     const isFeetHealthy = velocity >= 12;
 
     return new Response(

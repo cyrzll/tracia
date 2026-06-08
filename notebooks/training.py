@@ -24,6 +24,11 @@ def main():
     print(f"📂 Loading real dataset from {dataset_path}...")
     df = pd.read_csv(dataset_path)
 
+    # 1b. Rescale Attendance_Rate to 0-1 range
+    if df['Attendance_Rate'].max() > 1.0:
+        print("⚖️ Rescaling Attendance_Rate from 0-100 to 0-1 range...")
+        df['Attendance_Rate'] = df['Attendance_Rate'] / 100.0
+
     # 2. Pisahkan X dan y
     X = df.drop(columns=['Student_ID', 'Dropout_Label'])
     y = df['Dropout_Label'].map({'Yes': 1, 'No': 0})
@@ -69,52 +74,19 @@ def main():
     print(f"✅ Best Trial: {study.best_trial.params}")
 
     # 6. Train Final Pipeline with Best Parameters
-    best_params = study.best_params
-    class_ratio = (y_train == 0).sum() / (y_train == 1).sum()
-    best_params['random_state'] = 42
-    best_params['eval_metric'] = 'logloss'
+    print("\n📉 Training final model with best parameters...")
+    final_pipeline = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', xgb.XGBClassifier(
+            **study.best_params,
+            random_state=42,
+            eval_metric='logloss',
+            scale_pos_weight=(y_train == 0).sum() / (y_train == 1).sum()
+        ))
+    ])
+    final_pipeline.fit(X_train, y_train)
 
-    print("\n📉 Tuning model noise to target realistic F1-Score and Recall of ~0.80...")
-    final_pipeline = None
-    target_val = 0.80
-    best_diff = 999.0
-    best_nr = 0.0
-    best_spw = 1.0
-
-    # Search over scale_pos_weight (spw) and noise_rate (nr) to find a balanced model
-    for spw in np.linspace(1.0, class_ratio, 5):
-        for nr in np.arange(0.0, 0.50, 0.01):
-            np.random.seed(42)
-            noise_mask = np.random.rand(len(y_train)) < nr
-            y_train_noisy = y_train.copy()
-            y_train_noisy[noise_mask] = 1 - y_train_noisy[noise_mask]
-
-            modified_params = best_params.copy()
-            modified_params['max_depth'] = min(best_params.get('max_depth', 5), 4)
-            modified_params['scale_pos_weight'] = spw
-
-            temp_pipeline = Pipeline(steps=[
-                ('preprocessor', preprocessor),
-                ('classifier', xgb.XGBClassifier(**modified_params))
-            ])
-            temp_pipeline.fit(X_train, y_train_noisy)
-
-            y_pred_temp = temp_pipeline.predict(X_test)
-            f1_temp = f1_score(y_test, y_pred_temp, zero_division=0)
-            rec_temp = recall_score(y_test, y_pred_temp, zero_division=0)
-
-            # Minimize the combined absolute distance of F1-Score and Recall from target_val (0.80)
-            diff = abs(f1_temp - target_val) + abs(rec_temp - target_val)
-            if diff < best_diff:
-                best_diff = diff
-                final_pipeline = temp_pipeline
-                best_nr = nr
-                best_spw = spw
-                # Break early if both metrics are very close to 0.80
-                if abs(f1_temp - target_val) <= 0.02 and abs(rec_temp - target_val) <= 0.02:
-                    break
-
-    print(f"🌲 Final model selected (Noise Rate: {best_nr:.2f}, Scale Pos Weight: {best_spw:.2f}). Training complete.")
+    print(f"🌲 Final model trained successfully.")
 
     # --- SIMPAN DATASET SETELAH PREPROCESSING ---
     print("\n💾 Saving dataset after preprocessing...")

@@ -134,9 +134,9 @@ Memprediksi risiko dropout mahasiswa berdasarkan data akademis dan keuangan.
   - `prediction` (*str*): Hasil prediksi dropout (`"Yes"` jika berisiko dropout, `"No"` jika aman).
   - `dropout_risk_probability` (*float*): Nilai probabilitas dropout dalam rentang `0.0` hingga `1.0`.
   - `risk_level` (*str*): Kategori tingkat risiko dropout mahasiswa:
-    - `High`: Probabilitas > `0.7`
-    - `Medium`: Probabilitas `0.3` - `0.7`
-    - `Low`: Probabilitas <= `0.3`
+    - `High`: Probabilitas >= `0.5` (Berisiko Dropout)
+    - `Medium`: Probabilitas `0.2` - `0.5`
+    - `Low`: Probabilitas < `0.2`
 
   **Contoh Response Payload:**
   ```json
