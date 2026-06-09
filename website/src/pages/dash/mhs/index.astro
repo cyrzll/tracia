@@ -358,7 +358,7 @@ try {
         console.error('KRS/Billing/KHS fetch error:', krsErr);
       }
     } else {
-      fetchError = result.message || 'Gagal memuat profil mahasiswa.';
+      fetchError = result.message || 'Failed to load student profile.';
     }
   } else {
     // If token is invalid or expired, redirect to login
@@ -366,7 +366,7 @@ try {
     return Astro.redirect('/login');
   }
 } catch (error) {
-  fetchError = 'Koneksi ke server SIADIN terputus.';
+  fetchError = 'Connection to SIADIN server lost.';
   console.error('SIADIN Profile fetch error:', error);
 }
 
@@ -389,8 +389,8 @@ if (studentData) {
 ---
 
 <Layout 
-  title="Dashboard Mahasiswa | TRACIA AI"
-  description="Portal pemantauan mandiri mahasiswa TRACIA AI untuk melacak status registrasi, performa akademik, dan metrik kesehatan studi."
+  title="Student Dashboard | TRACIA AI"
+  description="TRACIA AI student self-monitoring portal to track registration status, academic performance, and study health metrics."
 >
   <div class="min-h-screen bg-zinc-50 text-zinc-800 font-sans">
     <!-- Navbar -->
@@ -409,7 +409,7 @@ if (studentData) {
               <div class="flex items-center gap-3">
                 <div class="hidden sm:flex flex-col items-end text-right">
                   <span class="text-xs font-semibold text-zinc-900">{studentData.nama}</span>
-                  <span class="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">MAHASISWA</span>
+                  <span class="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">STUDENT</span>
                 </div>
                 <img 
                   src={studentData.foto} 
@@ -444,18 +444,18 @@ if (studentData) {
     <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <!-- Welcome Header -->
       <div class="mb-8 border-b border-zinc-200 pb-6">
-        <h1 class="text-2xl font-bold text-zinc-900 tracking-tight">PORTAL MAHASISWA</h1>
-        <p class="text-xs text-zinc-500 mt-1">Sistem Pemantauan Akademis Terintegrasi SIADIN Universitas Dian Nuswantoro</p>
+        <h1 class="text-2xl font-bold text-zinc-900 tracking-tight">STUDENT PORTAL</h1>
+        <p class="text-xs text-zinc-500 mt-1">Integrated Academic Monitoring System SIADIN Dian Nuswantoro University</p>
       </div>
 
       {fetchError ? (
         <div class="p-4 border border-zinc-200 bg-white rounded shadow-sm flex items-start gap-3">
           <span class="text-zinc-900 font-bold">[!]</span>
           <div>
-            <h3 class="text-sm font-bold text-zinc-900">Terjadi Kesalahan</h3>
+            <h3 class="text-sm font-bold text-zinc-900">An Error Occurred</h3>
             <p class="text-xs text-zinc-500 mt-0.5">{fetchError}</p>
             <Button size="sm" className="mt-3" asChild>
-              <a href="?action=logout">Kembali Ke Login</a>
+              <a href="?action=logout">Back to Login</a>
             </Button>
           </div>
         </div>

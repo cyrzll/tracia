@@ -19,7 +19,7 @@ if (Astro.request.method === 'POST') {
     const password = data.get('password')?.toString() || '';
 
     if (!username || !password) {
-      errorMessage = 'Username dan password wajib diisi.';
+      errorMessage = 'Username and password are required.';
     } else {
       // 1. Query user with matching credentials and admin level in local DB
       const users = await db.select().from(User).where(
@@ -59,7 +59,7 @@ if (Astro.request.method === 'POST') {
           maxAge: 60 * 60 * 24 * 7 // 7 days
         });
 
-        successMessage = 'Login berhasil! Mengalihkan ke dashboard...';
+        successMessage = 'Login successful! Redirecting to dashboard...';
         return Astro.redirect('/dash/admin');
       } else {
         // 2. Try calling SIADIN API login
@@ -85,7 +85,7 @@ if (Astro.request.method === 'POST') {
                 maxAge: 60 * 60 * 2 // 2 hours
               });
 
-              successMessage = 'Login Mahasiswa berhasil! Mengalihkan ke dashboard...';
+              successMessage = 'Student login successful! Redirecting to dashboard...';
               return Astro.redirect('/dash/mhs');
             }
           }
@@ -93,14 +93,14 @@ if (Astro.request.method === 'POST') {
           console.error('SIADIN API Login failed:', apiError);
         }
 
-        errorMessage = 'Username, password salah, atau Anda tidak memiliki akses.';
+        errorMessage = 'Incorrect username, password, or you do not have access.';
       }
     }
   } catch (error) {
     if (error instanceof Error) {
       errorMessage = error.message;
     } else {
-      errorMessage = 'Terjadi kesalahan internal pada server.';
+      errorMessage = 'An internal server error occurred.';
     }
   }
 }
@@ -119,8 +119,8 @@ if (mhsSession) {
 ---
 
 <Layout 
-  title="Masuk Portal TRACIA AI | Student Risk Predictor"
-  description="Masuk ke portal akademik TRACIA AI untuk memantau status risiko akademis mahasiswa secara real-time."
+  title="Login to TRACIA AI Portal | Student Risk Predictor"
+  description="Log in to the TRACIA AI academic portal to monitor student academic risk status in real-time."
 >
   <div class="relative flex items-center justify-center min-h-screen bg-zinc-50 text-zinc-800">
     <div class="w-full max-w-sm p-4 m-4">
@@ -140,8 +140,8 @@ if (mhsSession) {
       <!-- Login Shadcn Card -->
       <Card className="rounded shadow-sm border border-zinc-200 bg-white">
         <CardHeader>
-          <CardTitle className="text-zinc-900">Masuk Akun Admin</CardTitle>
-          <CardDescription className="text-zinc-500">Masukkan kredensial untuk mengakses sistem pemantauan.</CardDescription>
+          <CardTitle className="text-zinc-900">Admin Account Login</CardTitle>
+          <CardDescription className="text-zinc-500">Enter your credentials to access the monitoring system.</CardDescription>
         </CardHeader>
         <CardContent>
           {errorMessage && (
@@ -193,10 +193,10 @@ if (mhsSession) {
             <div class="flex items-center justify-between text-[10px] text-zinc-500 pt-1">
               <label class="flex items-center gap-1.5 cursor-pointer hover:text-zinc-800 select-none">
                 <input type="checkbox" class="w-3 h-3 rounded border-zinc-200 bg-white text-zinc-900 focus:ring-zinc-400" />
-                Ingat saya
+                Remember me
               </label>
               <a href="#" class="hover:text-zinc-800 transition-colors">
-                Lupa Password?
+                Forgot Password?
               </a>
             </div>
 
@@ -205,7 +205,7 @@ if (mhsSession) {
               type="submit"
               className="w-full mt-2 cursor-pointer bg-zinc-900 text-zinc-50 hover:bg-zinc-800"
             >
-              Masuk Ke Portal
+              Log In to Portal
             </Button>
           </form>
         </CardContent>

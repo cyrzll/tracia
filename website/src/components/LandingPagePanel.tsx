@@ -74,9 +74,9 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
           transition={{ duration: 0.8, delay: 0.25, type: "spring", stiffness: 60, damping: 15 }}
           className="text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-950 mb-6 leading-tight font-sans"
         >
-          Deteksi Dini & Analisis <br/>
+          Early Detection & Analysis <br/>
           <span className="text-zinc-500">
-            Risiko Dropout Mahasiswa
+            of Student Dropout Risk
           </span>
         </motion.h1>
 
@@ -87,7 +87,7 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
           transition={{ duration: 0.7, delay: 0.35 }}
           className="max-w-xl mx-auto text-sm sm:text-base text-zinc-500 leading-relaxed mb-12"
         >
-          Platform analitik minimalis berbasis kecerdasan buatan (Machine Learning XGBoost & Optuna) untuk memantau, memprediksi, dan memberikan intervensi tepat sasaran guna menurunkan tingkat dropout perguruan tinggi secara proaktif.
+          Minimalist analytics platform based on artificial intelligence (XGBoost & Optuna Machine Learning) to monitor, predict, and provide targeted interventions to proactively reduce university dropout rates.
         </motion.p>
 
         {/* CTAs */}
@@ -104,7 +104,7 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
               href="/dash/admin"
               className="px-6 py-3 rounded bg-zinc-900 hover:bg-zinc-800 text-sm font-semibold text-zinc-50 transition-colors w-full sm:w-auto text-center shadow-sm"
             >
-              Dashboard Admin ({adminName})
+              Admin Dashboard ({adminName})
             </motion.a>
           ) : (
             <motion.a
@@ -113,7 +113,7 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
               href="/login"
               className="px-6 py-3 rounded bg-zinc-900 hover:bg-zinc-800 text-sm font-semibold text-zinc-50 transition-colors w-full sm:w-auto text-center shadow-sm"
             >
-              Masuk Portal Admin
+              Admin Portal Login
             </motion.a>
           )}
           <motion.a
@@ -123,7 +123,7 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
             target="_blank"
             className="px-6 py-3 rounded border border-zinc-200 bg-white hover:bg-zinc-50 text-sm font-semibold text-zinc-800 transition-colors w-full sm:w-auto text-center shadow-sm"
           >
-            Dokumentasi API
+            API Documentation
           </motion.a>
         </motion.div>
 
@@ -143,9 +143,9 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
             <div className="w-8 h-8 rounded border border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-800 font-bold mb-4">
               01
             </div>
-            <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wide">Prediksi XGBoost + Optuna</h3>
+            <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wide">XGBoost + Optuna Prediction</h3>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              Klasifikasi data mahasiswa secara instan berdasarkan probabilitas statistik yang disetel otomatis menggunakan hyperparameter tuning Optuna.
+              Instant classification of student data based on statistical probabilities automatically tuned using Optuna hyperparameter tuning.
             </p>
           </motion.div>
 
@@ -160,7 +160,7 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
             </div>
             <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wide">Explainable AI (SHAP)</h3>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              Transparansi penuh dalam pengambilan keputusan model AI. Mengetahui secara presisi faktor-faktor akademis atau pembayaran yang memicu risiko.
+              Full transparency in AI model decision making. Precision understanding of academic or payment factors that trigger risks.
             </p>
           </motion.div>
 
@@ -173,9 +173,9 @@ export function LandingPagePanel({ isLoggedIn, adminName }: LandingPagePanelProp
             <div className="w-8 h-8 rounded border border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-800 font-bold mb-4">
               03
             </div>
-            <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wide">Tindakan Prioritas</h3>
+            <h3 className="text-sm font-bold text-zinc-900 mb-2 uppercase tracking-wide">Priority Actions</h3>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              Mengelompokkan mahasiswa ke tingkat kerawanan High, Medium, dan Low untuk menentukan langkah preventif yang paling efisien.
+              Grouping students into High, Medium, and Low risk levels to determine the most efficient preventive steps.
             </p>
           </motion.div>
         </motion.div>

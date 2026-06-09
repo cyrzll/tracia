@@ -54,15 +54,18 @@ def predict(data: StudentData):
         raise HTTPException(status_code=500, detail="Model not loaded on server.")
     
     try:
-        # Convert input to dictionary
-        input_dict = data.model_dump()
-
-        # Handle Payment_Status mapping if "Unpaid" is sent (not in original dataset)
-        if input_dict["Payment_Status"] == "Unpaid":
-            input_dict["Payment_Status"] = "Partial"
-
         # Convert input to DataFrame
-        input_df = pd.DataFrame([input_dict])
+        input_df = pd.DataFrame([data.model_dump()])
+
+        # Normalize Credit_Accumulation_Velocity (SKS/semester to ratio, standard 18 SKS)
+        if 'Credit_Accumulation_Velocity' in input_df.columns:
+            if input_df['Credit_Accumulation_Velocity'].iloc[0] > 2.0:
+                input_df['Credit_Accumulation_Velocity'] = input_df['Credit_Accumulation_Velocity'] / 18.0
+
+        # Normalize Attendance_Rate (0-100 to 0-1 ratio range)
+        if 'Attendance_Rate' in input_df.columns:
+            if input_df['Attendance_Rate'].iloc[0] > 1.0:
+                input_df['Attendance_Rate'] = input_df['Attendance_Rate'] / 100.0
 
         # Predict dropout probability
         prob = model.predict_proba(input_df)[0][1]
@@ -70,14 +73,14 @@ def predict(data: StudentData):
         # Predict label (Yes/No)
         prediction = "Yes" if prob >= 0.5 else "No"
 
-        # Determine risk level - more intuitive thresholds
-        if prob >= 0.5:
+        # Determine risk level
+        if prob > 0.7:
             risk_level = "High"
-        elif prob >= 0.2:
+        elif prob > 0.3:
             risk_level = "Medium"
         else:
             risk_level = "Low"
-            
+
         return {
             "prediction": prediction,
             "dropout_risk_probability": round(float(prob), 4),

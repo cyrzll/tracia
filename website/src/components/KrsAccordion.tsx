@@ -22,7 +22,7 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
 
   const renderKrsTable = (krs: Course[]) => {
     if (!krs || krs.length === 0) {
-      return <div className="text-zinc-500 py-4 text-center text-xs">Tidak ada mata kuliah yang diambil.</div>;
+      return <div className="text-zinc-500 py-4 text-center text-xs">No courses taken.</div>;
     }
 
     const totalSks = krs.reduce((sum, item) => sum + item.sks, 0);
@@ -33,10 +33,10 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
           <TableHeader>
             <TableRow className="border-b border-zinc-200 hover:bg-transparent">
               <TableHead className="w-12 text-center text-zinc-500 py-2.5">No</TableHead>
-              <TableHead className="text-zinc-500 py-2.5">Kode MK</TableHead>
-              <TableHead className="text-zinc-500 py-2.5">Nama MK</TableHead>
-              <TableHead className="text-zinc-500 py-2.5">Kelompok</TableHead>
-              <TableHead className="text-center text-zinc-500 py-2.5">SKS</TableHead>
+              <TableHead className="text-zinc-500 py-2.5">Course Code</TableHead>
+              <TableHead className="text-zinc-500 py-2.5">Course Name</TableHead>
+              <TableHead className="text-zinc-500 py-2.5">Group</TableHead>
+              <TableHead className="text-center text-zinc-500 py-2.5">Credits</TableHead>
               <TableHead className="text-center text-zinc-500 py-2.5">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -59,8 +59,8 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
         </Table>
 
         <div className="flex justify-between items-center bg-zinc-50 border border-zinc-200 p-4 rounded text-xs">
-          <span className="font-bold text-zinc-600 uppercase tracking-wide">Total SKS Diambil:</span>
-          <span className="font-mono font-black text-sm text-zinc-950">{totalSks} SKS</span>
+          <span className="font-bold text-zinc-600 uppercase tracking-wide">Total Credits Taken:</span>
+          <span className="font-mono font-black text-sm text-zinc-950">{totalSks} Credits</span>
         </div>
       </div>
     );
@@ -83,7 +83,7 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
   if (allSemesters.length === 0) {
     return (
       <Card className="shadow-sm border border-zinc-200 bg-white p-6 text-center">
-        <p className="text-zinc-500 text-xs">Belum ada riwayat Kartu Rencana Studi (KRS) yang tercatat.</p>
+        <p className="text-zinc-500 text-xs">No study plan card (KRS) history recorded yet.</p>
       </Card>
     );
   }
@@ -105,7 +105,7 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
                 <span>Semester {sem.ta}</span>
                 {isCurrent && (
                   <Badge variant="default" className="text-[8px] px-1.5 py-0.2 bg-zinc-900 text-zinc-50">
-                    Aktif
+                    Active
                   </Badge>
                 )}
               </div>

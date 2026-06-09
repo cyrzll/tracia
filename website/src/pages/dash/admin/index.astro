@@ -120,7 +120,7 @@ if (selectedNim) {
         total_tagih: b.totalTagih,
         informasi: b.informasi,
         tahun_ajaran: b.ta,
-        status_pembayaran: b.status.includes("TERBAYAR") ? "LUNAS" : "UTS",
+        status_pembayaran: b.status.includes("TERBAYAR") ? "PAID" : "UNPAID",
         via: b.via,
         tanggal: b.tanggal,
         SKS_sekarang: 0,
@@ -152,8 +152,8 @@ const formatRupiah = (value: number) => {
 ---
 
 <Layout 
-  title="Dashboard Monitoring Risiko | TRACIA AI"
-  description="Dashboard pemantauan risiko dropout mahasiswa akademik dan keuangan terintegrasi bagi administrator TRACIA AI."
+  title="Risk Monitoring Dashboard | TRACIA AI"
+  description="Integrated academic and financial student dropout risk monitoring dashboard for TRACIA AI administrators."
 >
   <div class="min-h-screen bg-zinc-50 text-zinc-800 font-sans">
     <!-- Navbar -->
@@ -201,8 +201,8 @@ const formatRupiah = (value: number) => {
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Welcome Header -->
       <div class="mb-8 border-b border-zinc-200 pb-6">
-        <h1 class="text-2xl font-bold text-zinc-900 tracking-tight">DASHBOARD MONITORING RISIKO (ADMIN)</h1>
-        <p class="text-xs text-zinc-500 mt-1">Sistem Pemantauan Akademis Terintegrasi &bull; Administrator: {adminInfo.name}</p>
+        <h1 class="text-2xl font-bold text-zinc-900 tracking-tight">RISK MONITORING DASHBOARD (ADMIN)</h1>
+        <p class="text-xs text-zinc-500 mt-1">Integrated Academic Monitoring System &bull; Administrator: {adminInfo.name}</p>
       </div>
 
       <!-- Main Layout Grid: Left list, Right details -->
@@ -214,9 +214,9 @@ const formatRupiah = (value: number) => {
 
           <!-- System Insight Card -->
           <div class="border border-zinc-200 bg-white rounded p-4 shadow-sm">
-            <h3 class="text-xs font-bold text-zinc-900 uppercase tracking-wider">Metrik Status Integrasi</h3>
+            <h3 class="text-xs font-bold text-zinc-900 uppercase tracking-wider">Integration Status Metrics</h3>
             <p class="text-xs text-zinc-500 leading-relaxed mt-2">
-              Tabel di atas disinkronisasi secara otomatis saat mahasiswa login melalui akun portal SIADIN mereka.
+              The table above is synchronized automatically when students log in using their SIADIN portal accounts.
             </p>
           </div>
         </div>

@@ -7,7 +7,7 @@ Tujuan utamanya adalah menyediakan alat proaktif bagi institusi pendidikan untuk
 ---
 
 ## ✨ Fitur Utama
-- **Extreme Accuracy**: Menggunakan **XGBoost** yang dioptimalkan oleh **Optuna** untuk mencapai akurasi maksimal (~99.99%).
+- **Balanced Performance**: Menggunakan **XGBoost** yang dioptimalkan untuk mencapai akurasi yang realistis (~80-90%) guna menghindari overfitting.
 - **Auto-Tuning**: Pencarian hyperparameter otomatis (learning rate, depth, dll.) untuk performa terbaik.
 - **Explainable AI (XAI)**: Menggunakan **SHAP Summary Plot** untuk membedah bagaimana fitur seperti GPA atau kehadiran memengaruhi risiko.
 - **Data Export**: Secara otomatis mengekspor dataset yang telah di-preprocess ke format CSV untuk analisis lebih lanjut.

@@ -52,21 +52,21 @@ export function StudentList({ students: initialStudents, initialSelectedNim }: S
   return (
     <Card className="shadow-sm border border-zinc-200 bg-white overflow-hidden">
       <CardHeader className="bg-zinc-50/50 border-b border-zinc-200 p-4">
-        <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Daftar Pengawasan Mahasiswa</CardTitle>
+        <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Student Watchlist</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {students.length === 0 ? (
           <div className="p-6 text-center text-zinc-500 text-xs font-medium">
-            Belum ada data mahasiswa di database. Mahasiswa perlu melakukan login terlebih dahulu agar data profil & akademis masuk ke database.
+            No student data in the database yet. Students need to log in first so their profile & academic data enters the database.
           </div>
         ) : (
           <div className="max-h-[600px] overflow-y-auto">
             <Table>
               <TableHeader className="bg-zinc-50">
                 <TableRow className="border-b border-zinc-200 hover:bg-transparent">
-                  <TableHead className="px-4 py-2.5 text-zinc-500 text-[10px]">Mahasiswa</TableHead>
-                  <TableHead className="px-4 py-2.5 text-zinc-500 text-[10px] text-center">Risiko</TableHead>
-                  <TableHead className="px-4 py-2.5 text-zinc-500 text-[10px] text-right">Aksi</TableHead>
+                  <TableHead className="px-4 py-2.5 text-zinc-500 text-[10px]">Student</TableHead>
+                  <TableHead className="px-4 py-2.5 text-zinc-500 text-[10px] text-center">Risk</TableHead>
+                  <TableHead className="px-4 py-2.5 text-zinc-500 text-[10px] text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -100,7 +100,7 @@ export function StudentList({ students: initialStudents, initialSelectedNim }: S
                             : 'bg-zinc-950 text-zinc-50 border-2 border-black'
                         }`}
                       >
-                        {s.risk_level === 'Low' ? 'Rendah' : s.risk_level === 'Medium' ? 'Sedang' : 'Tinggi'}
+                        {s.risk_level === 'Low' ? 'Low' : s.risk_level === 'Medium' ? 'Medium' : 'High'}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
@@ -110,7 +110,7 @@ export function StudentList({ students: initialStudents, initialSelectedNim }: S
                         className="h-7 text-[9px] px-2 py-0 border-zinc-200 hover:bg-zinc-100 cursor-pointer"
                         onClick={() => handleSelect(s.nim)}
                       >
-                        Pilih
+                        Select
                       </Button>
                     </TableCell>
                   </TableRow>

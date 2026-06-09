@@ -5,6 +5,11 @@ import { Badge } from "./ui/badge"
 import { KrsAccordion } from "./KrsAccordion"
 import { TranscriptView } from "./TranscriptView"
 
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, Title);
+
 import type { Student, Billing, SemesterKrs, CourseGrade, KhsHeader } from "@/types"
 
 interface StudentDetailsPanelProps {
@@ -84,12 +89,12 @@ export function StudentDetailsPanel({
         setIsFeetHealthy(data.isFeetHealthy);
         setVelocity(data.velocity);
       } else if (!silent) {
-        setErrorMsg(data.error || "Gagal memuat data mahasiswa.");
+        setErrorMsg(data.error || "Failed to load student data.");
       }
     } catch (err) {
       console.error(err);
       if (!silent) {
-        setErrorMsg("Koneksi jaringan gagal.");
+        setErrorMsg("Network connection failed.");
       }
     } finally {
       if (!silent) {
@@ -157,7 +162,7 @@ export function StudentDetailsPanel({
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setEmailStatus({ type: 'success', msg: 'Email berhasil dikirim ke mahasiswa!' });
+        setEmailStatus({ type: 'success', msg: 'Email sent successfully to student!' });
         // Close modal after brief delay
         setTimeout(() => {
           setIsEmailModalOpen(false);
@@ -166,11 +171,11 @@ export function StudentDetailsPanel({
           setEmailStatus(null);
         }, 1800);
       } else {
-        setEmailStatus({ type: 'error', msg: data.error || 'Terjadi kesalahan saat mengirim email.' });
+        setEmailStatus({ type: 'error', msg: data.error || 'An error occurred while sending email.' });
       }
     } catch (err) {
       console.error(err);
-      setEmailStatus({ type: 'error', msg: 'Gagal menghubungkan ke server email.' });
+      setEmailStatus({ type: 'error', msg: 'Failed to connect to email server.' });
     } finally {
       setIsSendingEmail(false);
     }
@@ -182,7 +187,7 @@ export function StudentDetailsPanel({
         <div className="w-12 h-12 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-500 mb-3">
           ⚠️
         </div>
-        <h3 className="text-sm font-bold text-zinc-900">Gagal Memuat Data</h3>
+        <h3 className="text-sm font-bold text-zinc-900">Failed to Load Data</h3>
         <p className="text-xs text-zinc-500 mt-1 max-w-xs">{errorMsg}</p>
       </Card>
     );
@@ -194,8 +199,8 @@ export function StudentDetailsPanel({
         <div className="w-12 h-12 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-400 mb-3 font-mono">
           🔍
         </div>
-        <h3 className="text-sm font-bold text-zinc-900">Pilih Mahasiswa</h3>
-        <p className="text-xs text-zinc-500 mt-1 max-w-xs">Silakan pilih mahasiswa dari daftar di sebelah kiri untuk memantau performa akademis, visualisasi anatomi risiko, KRS, serta transkrip nilai mereka.</p>
+        <h3 className="text-sm font-bold text-zinc-900">Select a Student</h3>
+        <p className="text-xs text-zinc-500 mt-1 max-w-xs">Please select a student from the list on the left to monitor their academic performance, risk anatomy visualization, KRS, and transcript.</p>
       </Card>
     );
   }
@@ -244,7 +249,7 @@ export function StudentDetailsPanel({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
               </svg>
-              Kirim Email
+              Send Email
             </Button>
           </Card>
         </div>
@@ -253,26 +258,26 @@ export function StudentDetailsPanel({
         <div className="md:col-span-2">
           <Card className="shadow-sm border border-zinc-200 bg-white h-full">
             <CardHeader className="border-b border-zinc-150 p-4 bg-zinc-50/50">
-              <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Informasi Mahasiswa Terpilih</CardTitle>
+              <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Selected Student Information</CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Nama Lengkap</span>
+                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Full Name</span>
                   <span className="text-xs font-semibold text-zinc-900 block mt-0.5">{student.nama}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">NIM</span>
+                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Student ID (NIM)</span>
                   <span className="text-xs font-mono font-semibold text-zinc-900 block mt-0.5">{student.nim}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Email Kampus</span>
+                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Campus Email</span>
                   <span className="text-xs font-mono text-zinc-900 block mt-0.5">{student.email}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Jenis Kelamin</span>
+                  <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Gender</span>
                   <span className="text-xs font-semibold text-zinc-900 block mt-0.5">
-                    {student.gender === 'L' ? 'Laki-laki' : student.gender === 'P' ? 'Perempuan' : student.gender}
+                    {student.gender === 'L' ? 'Male' : student.gender === 'P' ? 'Female' : student.gender}
                   </span>
                 </div>
               </div>
@@ -286,8 +291,8 @@ export function StudentDetailsPanel({
         <CardHeader className="border-b border-zinc-150 p-4 bg-zinc-50/50">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Analisis Risiko Akademik (AI Dropout Prediction)</CardTitle>
-              <CardDescription className="text-[10px] text-zinc-500 mt-1 leading-snug">Deteksi tingkat kerawanan dropout mahasiswa secara visual.</CardDescription>
+              <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Academic Risk Analysis (AI Dropout Prediction)</CardTitle>
+              <CardDescription className="text-[10px] text-zinc-500 mt-1 leading-snug">Visual student dropout vulnerability detection.</CardDescription>
             </div>
             <Badge 
               className={`text-[9px] px-2 py-0.5 font-bold uppercase border-zinc-300 ${
@@ -298,7 +303,7 @@ export function StudentDetailsPanel({
                   : "bg-zinc-950 text-zinc-50 border-2 border-black"
               }`}
             >
-              Risiko {student.risk_level === "Low" ? "Rendah" : student.risk_level === "Medium" ? "Sedang" : "Tinggi"}
+              {student.risk_level === "Low" ? "Low" : student.risk_level === "Medium" ? "Medium" : "High"} Risk
             </Badge>
           </div>
         </CardHeader>
@@ -306,7 +311,7 @@ export function StudentDetailsPanel({
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-stretch">
             {/* Probability Circle/Display */}
             <div className="lg:col-span-1 text-center lg:border-r lg:border-zinc-200 lg:pr-6 flex flex-col justify-center items-center">
-              <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Probabilitas Dropout</span>
+              <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Dropout Probability</span>
               <span className="text-4xl font-black text-zinc-950 tracking-tighter block mt-2">{(student.risk_probability * 100).toFixed(2)}%</span>
               <div className="w-full bg-zinc-100 h-2 rounded-full overflow-hidden mt-4 mx-auto max-w-[150px]">
                 <div 
@@ -325,153 +330,115 @@ export function StudentDetailsPanel({
             {/* AI Input Breakdown */}
             <div className="lg:col-span-2 space-y-4 flex flex-col justify-between">
               <div>
-                <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Hasil Analisis Model</span>
+                <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Model Analysis Result</span>
                 <p className="text-xs text-zinc-655 mt-1.5 leading-relaxed font-medium">
                   {student.risk_level === "Low" ? (
-                    "Performa akademik mahasiswa berada dalam kondisi aman dengan tingkat kestabilan tinggi. Disarankan untuk tetap mempertahankan pencapaian SKS dan IPK pada semester berikutnya."
+                    "The student's academic performance is in a safe condition with high stability. It is recommended to maintain credit and GPA achievement in the next semester."
                   ) : student.risk_level === "Medium" ? (
-                    "Model mendeteksi adanya indikator risiko dropout tingkat menengah. Disarankan untuk meninjau kembali tingkat kehadiran kuliah, tren pencapaian IPK, serta memastikan tidak ada pembayaran tagihan yang terlambat."
+                    "The model detects indicators of medium-level dropout risk. It is recommended to review lecture attendance rates, GPA achievement trends, and ensure there are no late bill payments."
                   ) : (
-                    "PENTING: Model mendeteksi tingkat risiko dropout yang tinggi. Hal ini dipicu oleh tren penurunan IPK yang signifikan, adanya mata kuliah yang tidak lulus, keterlambatan pembayaran biaya kuliah, atau tingkat kehadiran yang rendah. Segera jadwalkan bimbingan akademik dengan Dosen Wali."
+                    "IMPORTANT: The model detects a high level of dropout risk. This is triggered by a significant downward trend in GPA, failed courses, late tuition payments, or low attendance rates. Schedule academic guidance with the Academic Advisor immediately."
                   )}
                 </p>
               </div>
 
               <div className="border-t border-zinc-150 pt-3">
-                <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Parameter Input AI</span>
+                <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-2">AI Input Parameters</span>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono text-zinc-500">
                   <div>
                     <span className="text-zinc-400">Semester:</span>
                     <span className="font-bold text-zinc-800 ml-1">{student.semester}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-400">IPK Kumulatif:</span>
+                    <span className="text-zinc-400">Cumulative GPA:</span>
                     <span className="font-bold text-zinc-800 ml-1">{student.gpa.toFixed(2)}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-400">Kehadiran (Rasio):</span>
+                    <span className="text-zinc-400">Attendance (Ratio):</span>
                     <span className="font-bold text-zinc-800 ml-1">95.00%</span>
                   </div>
                   <div>
-                    <span className="text-zinc-400">Kecepatan SKS:</span>
+                    <span className="text-zinc-400">Credit Velocity:</span>
                     <span className="font-bold text-zinc-800 ml-1">{velocity.toFixed(2)}/sem</span>
                   </div>
                   <div>
-                    <span className="text-zinc-400">MK Gagal:</span>
+                    <span className="text-zinc-400">Failed Courses:</span>
                     <span className="font-bold text-zinc-800 ml-1">{transcript ? transcript.filter((c) => c.nl === 'D' || c.nl === 'E').length : 0}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-400">Status Bayar:</span>
+                    <span className="text-zinc-400">Payment Status:</span>
                     <span className="font-bold text-zinc-800 ml-1">{billing && billing.status.includes("TERBAYAR") ? "Paid" : "Unpaid"}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* SVG Anatomy Visualization */}
+            {/* Pie Chart Visualization */}
             <div className="lg:col-span-1 flex flex-col items-center justify-center lg:border-l lg:border-zinc-200 lg:pl-6 py-2">
-              <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 text-center w-full">Visualisasi Anatomi Risiko</span>
+              <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3 text-center w-full">Risk Anatomy Visualization</span>
               
-              <div className="flex items-center gap-4 w-full justify-between">
-                <div className="relative flex-shrink-0">
-                  <svg viewBox="0 0 120 220" className="w-16 h-auto text-zinc-900" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    {/* Head */}
-                    <circle cx="60" cy="30" r="14" className="stroke-zinc-200" />
-                    {/* Spine / Neck */}
-                    <line x1="60" y1="44" x2="60" y2="60" className="stroke-zinc-200" />
-                    {/* Torso */}
-                    <path d="M 45 60 L 75 60 L 70 120 L 50 120 Z" className="stroke-zinc-200 fill-zinc-50/20" />
-                    {/* Arms */}
-                    <path d="M 43 60 C 30 80, 28 100, 32 120" className="stroke-zinc-200" />
-                    <path d="M 77 60 C 90 80, 92 100, 88 120" className="stroke-zinc-200" />
-                    {/* Legs */}
-                    <path d="M 52 120 L 48 160 L 50 200" className="stroke-zinc-200" />
-                    <path d="M 68 120 L 72 160 L 70 200" className="stroke-zinc-200" />
-                    
-                    {/* Brain Node */}
-                    {isBrainHealthy ? (
-                      <circle cx="60" cy="30" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
-                    ) : (
-                      <g>
-                        <circle cx="60" cy="30" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
-                        <circle cx="60" cy="30" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
-                      </g>
-                    )}
+              <div className="w-full h-full min-h-[180px] flex items-center justify-center">
+                <Pie 
+                  data={{
+                    labels: ['Academic (GPA)', 'Financial', 'Credit Velocity', 'Attendance'],
+                    datasets: [
+                      {
+                        data: [
+                          isBrainHealthy ? 10 : 40, 
+                          isHeartHealthy ? 10 : 30, 
+                          isHandsHealthy ? 10 : 20, 
+                          isFeetHealthy ? 10 : 10
+                        ],
+                        backgroundColor: [
+                          isBrainHealthy ? 'rgba(212, 212, 216, 0.6)' : 'rgba(24, 24, 27, 0.95)',
+                          isHeartHealthy ? 'rgba(228, 228, 231, 0.6)' : 'rgba(39, 39, 42, 0.9)',
+                          isHandsHealthy ? 'rgba(244, 244, 245, 0.6)' : 'rgba(63, 63, 70, 0.85)',
+                          isFeetHealthy ? 'rgba(250, 250, 250, 0.6)' : 'rgba(82, 82, 91, 0.8)',
+                        ],
+                        borderColor: [
+                          '#e4e4e7',
+                          '#e4e4e7',
+                          '#e4e4e7',
+                          '#e4e4e7',
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        enabled: true,
+                        bodyFont: {
+                          size: 10
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
 
-                    {/* Heart Node */}
-                    {isHeartHealthy ? (
-                      <circle cx="60" cy="75" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
-                    ) : (
-                      <g>
-                        <circle cx="60" cy="75" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
-                        <circle cx="60" cy="75" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
-                      </g>
-                    )}
-
-                    {/* Hands Nodes */}
-                    {isHandsHealthy ? (
-                      <>
-                        <circle cx="32" cy="120" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
-                        <circle cx="88" cy="120" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
-                      </>
-                    ) : (
-                      <g>
-                        <circle cx="32" cy="120" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
-                        <circle cx="32" cy="120" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
-                        
-                        <circle cx="88" cy="120" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
-                        <circle cx="88" cy="120" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
-                      </g>
-                    )}
-
-                    {/* Feet Nodes */}
-                    {isFeetHealthy ? (
-                      <>
-                        <circle cx="50" cy="200" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
-                        <circle cx="70" cy="200" r="4.5" className="fill-zinc-100 stroke-zinc-400" strokeWidth="1.5" />
-                      </>
-                    ) : (
-                      <g>
-                        <circle cx="50" cy="200" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
-                        <circle cx="50" cy="200" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
-                        
-                        <circle cx="70" cy="200" r="7.5" className="fill-zinc-950/15 stroke-zinc-950/25 animate-pulse" strokeWidth="1" />
-                        <circle cx="70" cy="200" r="3.5" className="fill-zinc-950 stroke-zinc-950" strokeWidth="1" />
-                      </g>
-                    )}
-                  </svg>
+              <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 w-full text-[10px]">
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${isBrainHealthy ? 'bg-zinc-200' : 'bg-zinc-950'}`}></div>
+                  <span className="text-zinc-500">GPA: {student.gpa.toFixed(2)}</span>
                 </div>
-
-                {/* Mini bullet indicators */}
-                <div className="flex-1 space-y-3 text-[10px] leading-snug">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-bold text-zinc-900 flex items-center gap-1.5">
-                      🧠 Otak (GPA)
-                      <span className={`w-1.5 h-1.5 rounded-full ${isBrainHealthy ? 'bg-zinc-455' : 'bg-zinc-950 animate-pulse'}`}></span>
-                    </span>
-                    <span className="text-zinc-550 font-mono pl-4">{student.gpa.toFixed(2)} IPK</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-bold text-zinc-900 flex items-center gap-1.5">
-                      ❤️ Jantung (Bayar)
-                      <span className={`w-1.5 h-1.5 rounded-full ${isHeartHealthy ? 'bg-zinc-455' : 'bg-zinc-950 animate-pulse'}`}></span>
-                    </span>
-                    <span className="text-zinc-550 pl-4">{isHeartHealthy ? "Lunas" : "Tunggakan"}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-bold text-zinc-900 flex items-center gap-1.5">
-                      💪 Tangan (SKS)
-                      <span className={`w-1.5 h-1.5 rounded-full ${isHandsHealthy ? 'bg-zinc-455' : 'bg-zinc-950 animate-pulse'}`}></span>
-                    </span>
-                    <span className="text-zinc-550 pl-4">{student.sks} SKS ({transcript ? transcript.filter((c) => c.nl === 'D' || c.nl === 'E').length : 0} MK Gagal)</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-bold text-zinc-900 flex items-center gap-1.5">
-                      👣 Kaki (Hadir)
-                      <span className={`w-1.5 h-1.5 rounded-full ${isFeetHealthy ? 'bg-zinc-455' : 'bg-zinc-950 animate-pulse'}`}></span>
-                    </span>
-                    <span className="text-zinc-550 font-mono pl-4">95% ({velocity.toFixed(1)}/sem)</span>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${isHeartHealthy ? 'bg-zinc-200' : 'bg-zinc-950'}`}></div>
+                  <span className="text-zinc-500">Payment: {isHeartHealthy ? "Paid" : "Unpaid"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${isHandsHealthy ? 'bg-zinc-200' : 'bg-zinc-950'}`}></div>
+                  <span className="text-zinc-500">Credits: {student.sks}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${isFeetHealthy ? 'bg-zinc-200' : 'bg-zinc-950'}`}></div>
+                  <span className="text-zinc-500">Attendance: 95%</span>
                 </div>
               </div>
             </div>
@@ -484,7 +451,7 @@ export function StudentDetailsPanel({
         {/* KRS Accordion */}
         <div className="lg:col-span-2 space-y-4">
           <div className="border-b border-zinc-200 pb-3">
-            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wide">Rencana Studi (KRS)</h2>
+            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wide">Study Plan (KRS)</h2>
           </div>
           <KrsAccordion currentKrs={currentKrs} pastKrs={pastKrs} />
         </div>
@@ -492,7 +459,7 @@ export function StudentDetailsPanel({
         {/* Billing status */}
         <div className="lg:col-span-1 space-y-4">
           <div className="border-b border-zinc-200 pb-3">
-            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wide">Keuangan & Tagihan</h2>
+            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wide">Finance & Billing</h2>
           </div>
           {billing ? (
             <Card className="shadow-sm border border-zinc-200 bg-white">
@@ -500,7 +467,7 @@ export function StudentDetailsPanel({
                 <div className="flex justify-between items-start gap-2">
                   <div>
                     <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wide">
-                      {billing.status.includes("TERBAYAR") ? "Detail Pembayaran" : "Detail Tagihan"}
+                      {billing.status.includes("TERBAYAR") ? "Payment Details" : "Billing Details"}
                     </CardTitle>
                     <CardDescription className="text-[10px] text-zinc-500 mt-1 leading-snug">{billing.informasi}</CardDescription>
                   </div>
@@ -508,33 +475,33 @@ export function StudentDetailsPanel({
                     variant={billing.status.includes("TERBAYAR") ? "default" : "outline"} 
                     className={`text-[9px] uppercase px-1.5 py-0.5 border-zinc-300 ${billing.status.includes("TERBAYAR") ? "bg-zinc-900 text-zinc-50" : "text-zinc-650 bg-zinc-50"}`}
                   >
-                    {billing.status.includes("TERBAYAR") ? "Lunas" : "Tagihan"}
+                    {billing.status.includes("TERBAYAR") ? "Paid" : "Unpaid"}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
                 <div>
                   <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
-                    {billing.status.includes("TERBAYAR") ? "Jumlah Terbayar" : "Jumlah Pembayaran"}
+                    {billing.status.includes("TERBAYAR") ? "Amount Paid" : "Payment Amount"}
                   </span>
                   <span className="text-lg font-black text-zinc-950 tracking-tight block mt-1">{formatRupiah(billing.total_tagih)}</span>
                 </div>
 
                 <div className="border-t border-zinc-150 pt-3 space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">Tahun Ajaran</span>
+                    <span className="text-zinc-500">Academic Year</span>
                     <span className="font-medium text-zinc-800">{billing.tahun_ajaran}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Status</span>
-                    <span className="font-medium text-zinc-800">{billing.status_pembayaran}</span>
+                    <span className="font-medium text-zinc-800">{billing.status_pembayaran === "LUNAS" ? "PAID" : billing.status_pembayaran === "UTS" ? "UNPAID" : billing.status_pembayaran}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">Metode</span>
+                    <span className="text-zinc-500">Method</span>
                     <span className="font-medium text-zinc-800">{billing.via || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">Tanggal</span>
+                    <span className="text-zinc-500">Date</span>
                     <span className="font-mono text-zinc-650">{billing.tanggal ? billing.tanggal.split(' ')[0] : '-'}</span>
                   </div>
                 </div>
@@ -542,7 +509,7 @@ export function StudentDetailsPanel({
             </Card>
           ) : (
             <Card className="shadow-sm border border-zinc-200 bg-white p-5 text-center">
-              <span className="text-zinc-550 text-xs font-medium">Data tagihan tidak tersedia.</span>
+              <span className="text-zinc-550 text-xs font-medium">Billing data is not available.</span>
             </Card>
           )}
         </div>
@@ -557,8 +524,8 @@ export function StudentDetailsPanel({
           <Card className="relative w-full max-w-lg overflow-hidden border border-zinc-200 bg-white shadow-2xl rounded-xl animate-in fade-in zoom-in-95 duration-200">
             <CardHeader className="px-6 py-4 bg-zinc-50 border-b border-zinc-150 flex flex-row justify-between items-center">
               <div>
-                <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Kirim Email ke Mahasiswa</CardTitle>
-                <CardDescription className="text-[10px] text-zinc-500 mt-0.5 font-medium">Kirim notifikasi atau bimbingan akademik menggunakan SMTP server.</CardDescription>
+                <CardTitle className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Send Email to Student</CardTitle>
+                <CardDescription className="text-[10px] text-zinc-500 mt-0.5 font-medium">Send notification or academic guidance using SMTP server.</CardDescription>
               </div>
               <button 
                 type="button"
@@ -574,7 +541,7 @@ export function StudentDetailsPanel({
               <form onSubmit={handleSendEmail} className="space-y-4">
                 {/* Sender info */}
                 <div>
-                  <label className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Pengirim (Admin)</label>
+                  <label className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Sender (Admin)</label>
                   <input 
                     type="text" 
                     value={`${adminName} (${adminUsername})`}
@@ -585,7 +552,7 @@ export function StudentDetailsPanel({
 
                 {/* Recipient info */}
                 <div>
-                  <label className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Penerima (Mahasiswa)</label>
+                  <label className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Recipient (Student)</label>
                   <input 
                     type="email" 
                     value={student.email}
@@ -596,28 +563,28 @@ export function StudentDetailsPanel({
 
                 {/* Subject */}
                 <div>
-                  <label htmlFor="modal-email-subject" className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Subjek Email</label>
+                  <label htmlFor="modal-email-subject" className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Email Subject</label>
                   <input 
                     type="text" 
                     id="modal-email-subject" 
                     required 
                     value={emailSubject}
                     onChange={(e) => setEmailSubject(e.target.value)}
-                    placeholder="Masukkan subjek email..." 
+                    placeholder="Enter email subject..." 
                     className="w-full text-xs px-3 py-2 border border-zinc-200 rounded text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 transition-all font-medium"
                   />
                 </div>
 
                 {/* Message */}
                 <div>
-                  <label htmlFor="modal-email-message" className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Pesan / Konten</label>
+                  <label htmlFor="modal-email-message" className="block text-[9px] font-bold text-zinc-450 uppercase tracking-wider mb-1">Message / Content</label>
                   <textarea 
                     id="modal-email-message" 
                     required 
                     rows={5} 
                     value={emailMessage}
                     onChange={(e) => setEmailMessage(e.target.value)}
-                    placeholder="Tulis pesan akademik di sini..." 
+                    placeholder="Write academic message here..." 
                     className="w-full text-xs px-3 py-2 border border-zinc-200 rounded text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 transition-all resize-none font-medium"
                   ></textarea>
                 </div>
@@ -639,7 +606,7 @@ export function StudentDetailsPanel({
                     onClick={() => setIsEmailModalOpen(false)}
                     className="px-4 py-2 border border-zinc-250 text-xs font-semibold text-zinc-650 hover:bg-zinc-50 rounded transition-all cursor-pointer h-9"
                   >
-                    Batal
+                    Cancel
                   </Button>
                   <Button 
                     type="submit" 
@@ -648,11 +615,11 @@ export function StudentDetailsPanel({
                   >
                     {isSendingEmail ? (
                       <>
-                        <span>Mengirim...</span>
+                        <span>Sending...</span>
                         <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                       </>
                     ) : (
-                      <span>Kirim Email</span>
+                      <span>Send Email</span>
                     )}
                   </Button>
                 </div>

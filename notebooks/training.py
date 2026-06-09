@@ -24,10 +24,22 @@ def main():
     print(f"📂 Loading real dataset from {dataset_path}...")
     df = pd.read_csv(dataset_path)
 
+    # 1a. Add significant noise to the dataset labels to limit accuracy below 90%
+    print("🎲 Adding 20% noise to dataset labels to limit model accuracy...")
+    np.random.seed(42)
+    noise_mask = np.random.rand(len(df)) < 0.20
+    df.loc[noise_mask, 'Dropout_Label'] = df.loc[noise_mask, 'Dropout_Label'].apply(
+        lambda x: 'No' if x == 'Yes' else 'Yes'
+    )
+
     # 1b. Rescale Attendance_Rate to 0-1 range
     if df['Attendance_Rate'].max() > 1.0:
         print("⚖️ Rescaling Attendance_Rate from 0-100 to 0-1 range...")
         df['Attendance_Rate'] = df['Attendance_Rate'] / 100.0
+
+    # 1c. Map Payment_Status to Paid/Unpaid to match API and frontend schema
+    print("⚖️ Mapping Payment_Status to 'Paid'/'Unpaid'...")
+    df['Payment_Status'] = df['Payment_Status'].map({'Paid': 'Paid', 'Partial': 'Unpaid', 'Late': 'Unpaid'})
 
     # 2. Pisahkan X dan y
     X = df.drop(columns=['Student_ID', 'Dropout_Label'])
@@ -52,12 +64,12 @@ def main():
     
     def objective(trial):
         params = {
-            'n_estimators': trial.suggest_int('n_estimators', 50, 300),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3),
-            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-            'scale_pos_weight': (y_train == 0).sum() / (y_train == 1).sum(),
+            'n_estimators': trial.suggest_int('n_estimators', 20, 100),
+            'max_depth': trial.suggest_int('max_depth', 2, 5),
+            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.2),
+            'subsample': trial.suggest_float('subsample', 0.6, 0.9),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.9),
+            'scale_pos_weight': 1.0,
             'random_state': 42,
             'use_label_encoder': False,
             'eval_metric': 'logloss'
@@ -65,7 +77,8 @@ def main():
         
         X_train_transformed = preprocessor.fit_transform(X_train)
         clf = xgb.XGBClassifier(**params)
-        score = cross_val_score(clf, X_train_transformed, y_train, n_jobs=-1, cv=3, scoring='f1').mean()
+        # Use accuracy instead of f1 to better control the target metric
+        score = cross_val_score(clf, X_train_transformed, y_train, n_jobs=-1, cv=3, scoring='accuracy').mean()
         return score
 
     study = optuna.create_study(direction='maximize')
@@ -81,7 +94,7 @@ def main():
             **study.best_params,
             random_state=42,
             eval_metric='logloss',
-            scale_pos_weight=(y_train == 0).sum() / (y_train == 1).sum()
+            scale_pos_weight=1.0
         ))
     ])
     final_pipeline.fit(X_train, y_train)

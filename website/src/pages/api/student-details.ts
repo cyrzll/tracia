@@ -175,7 +175,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
         total_tagih: b.totalTagih,
         informasi: b.informasi,
         tahun_ajaran: b.ta,
-        status_pembayaran: b.status.includes("TERBAYAR") ? "LUNAS" : "UTS",
+        status_pembayaran: b.status.includes("TERBAYAR") ? "PAID" : "UNPAID",
         via: b.via,
         tanggal: b.tanggal,
         SKS_sekarang: 0,
