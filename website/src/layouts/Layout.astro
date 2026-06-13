@@ -55,6 +55,51 @@ const canonicalUrl = Astro.url.href;
 	</head>
 	<body class="font-sans antialiased text-zinc-900 bg-zinc-50">
 		<slot />
+		<script>
+			import Lenis from 'lenis';
+
+			// Initialize Lenis
+			const lenis = new Lenis({
+				duration: 1.2,
+				easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+				orientation: 'vertical',
+				gestureOrientation: 'vertical',
+				smoothWheel: true,
+			});
+
+			// Expose lenis to window
+			(window as any).lenis = lenis;
+
+			// Stop scroll if page is loading (e.g. loader overlay is active)
+			if (document.documentElement.classList.contains('loading')) {
+				lenis.stop();
+			}
+
+			// Add lenis class to html
+			document.documentElement.classList.add('lenis');
+
+			function raf(time: number) {
+				lenis.raf(time);
+				requestAnimationFrame(raf);
+			}
+
+			requestAnimationFrame(raf);
+
+			// Handle internal links with delegation
+			document.addEventListener('click', (e) => {
+				const target = (e.target as HTMLElement).closest('a');
+				if (target && target.getAttribute('href')?.startsWith('#')) {
+					const href = target.getAttribute('href');
+					if (href === '#') return;
+					
+					const targetElement = document.querySelector(href);
+					if (targetElement) {
+						e.preventDefault();
+						lenis.scrollTo(targetElement);
+					}
+				}
+			});
+		</script>
 	</body>
 </html>
 
