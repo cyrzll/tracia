@@ -219,11 +219,18 @@ export default function Orb({
 
     const mesh = new Mesh(gl, { geometry, program });
 
+    let lastWidth = 0;
+    let lastHeight = 0;
+
     function resize() {
       if (!container) return;
-      const dpr = window.devicePixelRatio || 1;
       const width = container.clientWidth;
       const height = container.clientHeight;
+      if (width === lastWidth && height === lastHeight) return;
+      lastWidth = width;
+      lastHeight = height;
+
+      const dpr = window.devicePixelRatio || 1;
       renderer.setSize(width * dpr, height * dpr);
       gl.canvas.style.width = width + 'px';
       gl.canvas.style.height = height + 'px';

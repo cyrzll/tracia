@@ -54,7 +54,7 @@ export default function LoaderOverlay() {
           initial={{ y: 0 }}
           exit={{ y: "-100%" }}
           transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-          className="fixed inset-0 w-full h-screen bg-[#050505] z-[9999] flex items-center justify-center pointer-events-auto"
+          className="fixed inset-x-0 top-0 h-[105vh] bg-[#050505] z-[9999] flex items-center justify-center pointer-events-auto"
         >
           <motion.div 
             initial={{ opacity: 0 }}
@@ -74,7 +74,7 @@ export default function LoaderOverlay() {
               initial={{ y: "100%", opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "-120%", opacity: 0 }}
-              staggerDuration={0.025}
+              staggerDuration={0.037}
               splitLevelClassName="overflow-hidden pb-1 sm:pb-2 md:pb-2"
               transition={{ type: "spring", damping: 30, stiffness: 400 }}
               rotationInterval={rotationInterval}

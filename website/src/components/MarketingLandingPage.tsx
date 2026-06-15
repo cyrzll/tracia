@@ -20,6 +20,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import Orb from "./background/orb";
+import Galaxy from "./background/galaxy";
 import GlassSurface from "./navbar/navbar";
 import BorderGlow from "./cardGlow";
 import SpotlightCard from "./cardSpotlight";
@@ -122,6 +123,10 @@ export default function MarketingLandingPage() {
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
+      // Force dark background to prevent any light theme fallbacks during scroll lag
+      document.documentElement.style.backgroundColor = "#050505";
+      document.body.style.backgroundColor = "#050505";
+
       // Set initial loading classes if not loaded yet
       if (!(window as any).isLoaderFinished) {
         document.documentElement.classList.add('loading');
@@ -218,15 +223,15 @@ export default function MarketingLandingPage() {
 
   return (
     <motion.div
-      initial={{ top: "100vh", position: "fixed", left: 0, height: "100vh" }}
+      initial={{ y: "100vh", position: "fixed", top: 0, left: 0, height: "100vh", width: "100%" }}
       animate={{
-        top: isLoaded ? "auto" : (startTransition ? 0 : "100vh"),
+        y: isLoaded ? 0 : (startTransition ? 0 : "100vh"),
         position: isLoaded ? "relative" : "fixed",
         height: isLoaded ? "auto" : "100vh",
         left: isLoaded ? "auto" : 0
       }}
       transition={{
-        top: isLoaded 
+        y: isLoaded 
           ? { duration: 0 } 
           : { duration: 1.2, ease: [0.76, 0, 0.24, 1] },
         position: { duration: 0 },
@@ -235,6 +240,24 @@ export default function MarketingLandingPage() {
       }}
       className="bg-[#050505] text-white font-sans selection:bg-indigo-500/30 selection:text-indigo-200 min-h-screen w-full"
     >
+      {/* Fixed Galaxy Background (Visible only when scrolled past Hero) */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
+        <Galaxy 
+          mouseRepulsion
+          mouseInteraction
+          density={1}
+          glowIntensity={0.3}
+          saturation={0}
+          hueShift={140}
+          twinkleIntensity={0.3}
+          rotationSpeed={0.1}
+          repulsionStrength={2}
+          autoCenterRepulsion={0}
+          starSpeed={0.5}
+          speed={1}
+        />
+      </div>
+
       {/* Navbar - Starts hidden/offset, animates down */}
       <motion.div 
         initial={{ y: -100, opacity: 0 }}
@@ -327,7 +350,7 @@ export default function MarketingLandingPage() {
       </motion.div>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
+      <section className="relative z-10 min-h-screen flex items-center pt-20 overflow-hidden bg-[#050505]">
         <div className="absolute inset-0 z-0">
           <Orb
             hoverIntensity={1.5}
@@ -388,10 +411,10 @@ export default function MarketingLandingPage() {
               transition={{ duration: 0.8, delay: 1.4, ease: "easeOut" }}
               className="flex flex-col sm:flex-row items-center gap-4"
             >
-              <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8 py-6 text-lg shadow-2xl shadow-indigo-600/20 w-full sm:w-auto">
+              <Button size="lg" className="bg-white text-black hover:bg-zinc-200 rounded-full px-8 py-6 text-lg shadow-2xl shadow-white/10 w-full sm:w-auto">
                 Request a Demo <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
-              <Button size="lg" variant="outline" className="border-zinc-800 hover:bg-zinc-900 text-white rounded-full px-8 py-6 text-lg w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="border-zinc-800 hover:bg-zinc-900 text-black dark:text-white hover:text-white rounded-full px-8 py-6 text-lg w-full sm:w-auto">
                 Explore Features
               </Button>
             </motion.div>
@@ -400,7 +423,7 @@ export default function MarketingLandingPage() {
       </section>
 
       {/* Why TRACIA Section */}
-      <section id="about-us" className="py-24 relative overflow-hidden bg-[#050505]">
+      <section id="about-us" className="py-24 relative z-10 overflow-hidden bg-transparent">
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-6">Why TRACIA?</h2>
@@ -465,8 +488,8 @@ export default function MarketingLandingPage() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-24 bg-black">
+      {/* Features Section */}
+      <section id="features" className="py-24 relative z-10 bg-transparent">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-20">
             <h2 className="text-3xl md:text-5xl font-bold mb-6">Key Features</h2>
@@ -502,7 +525,7 @@ export default function MarketingLandingPage() {
                   icon: <BrainCircuit className="w-8 h-8 text-rose-500" />
                 }
               ].map((item, i) => (
-                <div key={i} className="flex gap-6 p-6 rounded-2xl bg-zinc-900/30 border border-transparent hover:border-zinc-800 transition-all">
+                <div key={i} className="flex gap-6 p-6 rounded-2xl bg-transparent border border-transparent hover:bg-zinc-900/30 hover:border-zinc-800 transition-all">
                   <div className="flex-shrink-0">{item.icon}</div>
                   <div>
                     <h3 className="text-xl font-bold mb-2">{item.title}</h3>
@@ -525,12 +548,12 @@ export default function MarketingLandingPage() {
       </section>
 
       {/* ASEAN Universities Section */}
-      <section className="py-24 bg-black border-y border-zinc-900 overflow-visible relative">
+      <section className="py-24 bg-transparent border-y border-zinc-900/40 overflow-visible relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative min-h-[220vh] max-w-6xl mx-auto">
             {/* Left Column: Titles and Active Country Display */}
-            <div className="lg:col-span-7 self-stretch relative flex flex-col justify-start">
-              <div className="lg:sticky lg:top-48 pt-10 lg:pt-0 text-left">
+            <div className="lg:col-span-6 self-stretch relative flex flex-col justify-start">
+              <div className="lg:sticky lg:top-[calc(50vh-180px)] pt-10 lg:pt-0 text-left">
                 <span className="text-indigo-400 text-sm font-semibold uppercase tracking-[0.2em] mb-4">
                   Targeted for Universities across ASEAN
                 </span>
@@ -539,10 +562,10 @@ export default function MarketingLandingPage() {
                 </h2>
                 
                 {/* Dynamic Country Display */}
-                <div className="min-h-[100px] flex items-center p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 backdrop-blur-md">
+                <div className="flex items-center bg-transparent">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400">
-                      Active Country
+                      Designed for
                     </span>
                     <motion.h3 
                       key={`country-${activeUni.country}`}
@@ -559,7 +582,7 @@ export default function MarketingLandingPage() {
             </div>
 
             {/* Right Column: ScrollStack showing flags and universities */}
-            <div className="lg:col-span-5 h-full">
+            <div className="lg:col-span-6 h-full">
               <ScrollStack
                 useWindowScroll={true}
                 itemDistance={100}
@@ -576,7 +599,9 @@ export default function MarketingLandingPage() {
                       <img 
                         src={`https://flagcdn.com/w640/${uni.flag}.png`} 
                         alt={uni.country} 
-                        className="w-full h-full object-cover opacity-80" 
+                        className="w-full h-full object-cover opacity-80 bg-zinc-950" 
+                        decoding="async"
+                        loading="eager"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col gap-1 text-left">
@@ -592,7 +617,7 @@ export default function MarketingLandingPage() {
       </section>
 
       {/* How It Works with ScrollStack */}
-      <section className="py-24 bg-[#080808] overflow-visible">
+      <section className="py-24 bg-transparent overflow-visible relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start relative min-h-[180vh]">
             {/* Left Column: ScrollStack */}
@@ -666,15 +691,15 @@ export default function MarketingLandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-black">
+      <section id="pricing" className="py-24 bg-transparent relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-20">
             <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">TRACIA Pricing Plan</h2>
             <p className="text-zinc-400">Flexible plans tailored for institutions of all sizes.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Plan 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Plan 1: Demo (Free) */}
             <BorderGlow
               className="flex flex-col h-full relative overflow-hidden group"
               edgeSensitivity={30}
@@ -686,13 +711,13 @@ export default function MarketingLandingPage() {
             >
                <div className="p-4 flex flex-col h-full">
                  <CardHeader>
-                   <CardTitle className="text-2xl text-white">Basic Starter</CardTitle>
-                   <CardDescription className="text-zinc-400">Perfect for research & trials</CardDescription>
+                   <CardTitle className="text-2xl text-white">Demo</CardTitle>
+                   <CardDescription className="text-zinc-400">Experience TRACIA's core features</CardDescription>
                  </CardHeader>
                  <CardContent className="flex-grow">
-                   <div className="text-4xl font-bold mb-8 text-white">Rp 0</div>
+                   <div className="text-4xl font-bold mb-8 text-white">Free</div>
                    <ul className="space-y-4 mb-8">
-                     {['Single faculty access', 'Basic risk analysis', 'Limited data insights', 'Standard support'].map((feat) => (
+                     {['Core risk analytics engine', 'LMS integration demo', 'Standard report export', 'Self-service documentation'].map((feat) => (
                        <li key={feat} className="flex items-center gap-3 text-zinc-300 text-sm">
                          <CheckCircle2 className="w-5 h-5 text-indigo-500" /> {feat}
                        </li>
@@ -700,12 +725,12 @@ export default function MarketingLandingPage() {
                    </ul>
                  </CardContent>
                  <div className="p-6 pt-0">
-                   <Button variant="outline" className="w-full border-zinc-700 hover:bg-zinc-800 text-white">Start for Free</Button>
+                    <Button variant="outline" className="w-full border-zinc-700 hover:bg-zinc-800 text-black dark:text-white hover:text-white rounded-xl">Try for Free</Button>
                  </div>
                </div>
             </BorderGlow>
 
-            {/* Plan 2 */}
+            {/* Plan 2: Custom (Contact) */}
             <BorderGlow
               className="flex flex-col h-full relative overflow-hidden group shadow-2xl shadow-indigo-500/10"
               edgeSensitivity={30}
@@ -717,15 +742,15 @@ export default function MarketingLandingPage() {
               colors={['#6366f1', '#a855f7', '#3b82f6']}
             >
                <div className="p-4 flex flex-col h-full">
-                 <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase z-20">Most Popular</div>
+                 <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase z-20">Recommended</div>
                  <CardHeader>
-                   <CardTitle className="text-2xl text-white">Department Pro</CardTitle>
-                   <CardDescription className="text-zinc-400">Ideal for growing departments</CardDescription>
+                   <CardTitle className="text-2xl text-white">Custom</CardTitle>
+                   <CardDescription className="text-zinc-400">Tailored for large universities & institutions</CardDescription>
                  </CardHeader>
                  <CardContent className="flex-grow">
                    <div className="text-4xl font-bold mb-8 text-white">Contact Us</div>
                    <ul className="space-y-4 mb-8">
-                     {['Entire department access', 'Advanced AI predictive insights', 'Full recovery quest features', 'Priority support'].map((feat) => (
+                     {['University-wide integration', 'Custom AI model training', 'Dedicated success manager', '24/7 dedicated support'].map((feat) => (
                        <li key={feat} className="flex items-center gap-3 text-zinc-300 text-sm">
                          <CheckCircle2 className="w-5 h-5 text-indigo-500" /> {feat}
                        </li>
@@ -733,38 +758,7 @@ export default function MarketingLandingPage() {
                    </ul>
                  </CardContent>
                  <div className="p-6 pt-0">
-                   <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">Upgrade Now</Button>
-                 </div>
-               </div>
-            </BorderGlow>
-
-            {/* Plan 3 */}
-            <BorderGlow
-              className="flex flex-col h-full relative overflow-hidden group"
-              edgeSensitivity={30}
-              glowColor="260 80 80"
-              backgroundColor="#0a0a0a"
-              borderRadius={24}
-              glowRadius={50}
-              glowIntensity={0.8}
-            >
-               <div className="p-4 flex flex-col h-full">
-                 <CardHeader>
-                   <CardTitle className="text-2xl text-white">Custom</CardTitle>
-                   <CardDescription className="text-zinc-400">Tailored for large universities</CardDescription>
-                 </CardHeader>
-                 <CardContent className="flex-grow">
-                   <div className="text-4xl font-bold mb-8 text-white">Enterprise</div>
-                   <ul className="space-y-4 mb-8">
-                     {['University-wide integration', 'Custom AI model & research', 'Dedicated account manager', '24/7 dedicated support'].map((feat) => (
-                       <li key={feat} className="flex items-center gap-3 text-zinc-300 text-sm">
-                         <CheckCircle2 className="w-5 h-5 text-indigo-500" /> {feat}
-                       </li>
-                     ))}
-                   </ul>
-                 </CardContent>
-                 <div className="p-6 pt-0">
-                   <Button variant="outline" className="w-full border-zinc-700 hover:bg-zinc-800 text-white">Contact Our Team</Button>
+                   <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">Contact Our Team</Button>
                  </div>
                </div>
             </BorderGlow>
@@ -773,7 +767,7 @@ export default function MarketingLandingPage() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-24 bg-[#080808]">
+      <section id="contact" className="py-24 bg-transparent relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             <div>
@@ -839,12 +833,12 @@ export default function MarketingLandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-20 bg-black border-t border-zinc-800">
+      <footer className="py-20 bg-transparent border-t border-zinc-900/40 relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold">T</div>
+                <img src="/favicon.ico" alt="TRACIA Logo" className="w-8 h-8 object-contain" />
                 <span className="font-bold text-xl tracking-tight">TRACIA</span>
               </div>
               <p className="text-sm text-zinc-400 italic leading-relaxed">
@@ -882,12 +876,55 @@ export default function MarketingLandingPage() {
           
           <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-zinc-900 gap-4">
             <p className="text-sm text-zinc-500">© 2026 TRACIA. All rights reserved.</p>
-            <div className="flex items-center gap-6">
-              {/* Social icons placeholders */}
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer">
-                  <div className="w-4 h-4 bg-zinc-700 rounded-sm" />
-                </div>
+            <div className="flex items-center gap-4">
+              {[
+                { 
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 group-hover:text-white transition-colors">
+                      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+                      <path d="M9 18c-4.51 2-5-2-7-2" />
+                    </svg>
+                  ), 
+                  href: "https://github.com/tracia-AI" 
+                },
+                { 
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 group-hover:text-white transition-colors">
+                      <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+                    </svg>
+                  ), 
+                  href: "#" 
+                },
+                { 
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 group-hover:text-white transition-colors">
+                      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                      <rect width="4" height="12" x="2" y="9" />
+                      <circle cx="4" cy="4" r="2" />
+                    </svg>
+                  ), 
+                  href: "#" 
+                },
+                { 
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 group-hover:text-white transition-colors">
+                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                    </svg>
+                  ), 
+                  href: "#" 
+                }
+              ].map((item, i) => (
+                <a 
+                  key={i} 
+                  href={item.href} 
+                  target={item.href !== "#" ? "_blank" : undefined}
+                  rel={item.href !== "#" ? "noopener noreferrer" : undefined}
+                  className="w-9 h-9 rounded-full bg-zinc-900/50 border border-zinc-800 flex items-center justify-center hover:bg-indigo-600 hover:border-indigo-500 transition-all duration-300 group cursor-pointer"
+                >
+                  {item.icon}
+                </a>
               ))}
             </div>
           </div>
