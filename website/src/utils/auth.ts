@@ -14,7 +14,7 @@ export async function validateAdminSession(cookies: AstroCookies): Promise<AuthR
   // Case 1: Access Token exists and is valid
   if (accessTokenCookie) {
     const payload = await verifyToken(accessTokenCookie.value);
-    if (payload && payload.level === 'admin') {
+    if (payload && (payload.level === 'admin' || payload.level.startsWith('lecturer'))) {
       return { isLoggedIn: true, adminInfo: payload };
     }
   }
@@ -22,7 +22,7 @@ export async function validateAdminSession(cookies: AstroCookies): Promise<AuthR
   // Case 2: Access Token is missing or invalid, check Refresh Token
   if (refreshTokenCookie) {
     const payload = await verifyToken(refreshTokenCookie.value);
-    if (payload && payload.level === 'admin') {
+    if (payload && (payload.level === 'admin' || payload.level.startsWith('lecturer'))) {
       // Generate a new Access Token
       const newAccessToken = await generateAccessToken({
         uid: payload.uid,

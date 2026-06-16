@@ -4,11 +4,28 @@ import { validateAdminSession, clearAdminSession } from '../../../utils/auth';
 import { StudentList } from '@/components/StudentList';
 import { StudentDetailsPanel } from '@/components/StudentDetailsPanel';
 import { Button } from '@/components/ui/button';
-import Galaxy from '../../../components/background/galaxy';
 import { LanguageSelector } from '../../../components/navbar/LanguageSelector';
 import { db } from '../../../lib/db';
 import { Mhs, MhsKrs, MhsTranscript, MhsBilling } from '../../../lib/schema';
 import { eq } from 'drizzle-orm';
+
+// Helper to map route parameter to database NIM prefix
+const prodiToPrefix = (p: string) => {
+  const upper = p.toUpperCase();
+  if (upper === 'TI') return 'F11';
+  if (upper === 'SI') return 'F12';
+  if (upper === 'MANAJEMEN') return 'F13';
+  if (upper === 'DKV') return 'F14';
+  return upper;
+};
+
+const prefixToProdi = (prefix: string) => {
+  if (prefix === 'F11') return 'TI';
+  if (prefix === 'F12') return 'SI';
+  if (prefix === 'F13') return 'MANAJEMEN';
+  if (prefix === 'F14') return 'DKV';
+  return prefix;
+};
 
 // 1. Authentication Check
 const { isLoggedIn, adminInfo } = await validateAdminSession(Astro.cookies);
@@ -16,47 +33,48 @@ if (!isLoggedIn || !adminInfo) {
   return Astro.redirect('/login');
 }
 
-// Redirect lecturers to their specific study program page
-if (adminInfo.level.startsWith('lecturer-')) {
-  const prefixToProdi = (lvl: string) => {
-    const p = lvl.split('-')[1];
-    if (p === 'F11') return 'TI';
-    if (p === 'F12') return 'SI';
-    if (p === 'F13') return 'MANAJEMEN';
-    if (p === 'F14') return 'DKV';
-    return p;
-  };
-  const prodiName = prefixToProdi(adminInfo.level);
-  return Astro.redirect(`/dash/lecturer/${prodiName}`);
+// 2. Authorization Check
+// Redirect Super Admin back to the admin dashboard
+if (adminInfo.level === 'admin') {
+  return Astro.redirect('/dash/admin');
 }
 
-// Restrict to super admin
-if (adminInfo.level !== 'admin') {
+// Redirect lecturers trying to access a department they don't manage
+const { prodi } = Astro.params;
+const expectedPrefix = prodiToPrefix(prodi || '');
+
+if (adminInfo.level.startsWith('lecturer-')) {
+  const lecturerPrefix = adminInfo.level.split('-')[1];
+  if (lecturerPrefix !== expectedPrefix) {
+    const expectedProdiName = prefixToProdi(lecturerPrefix);
+    return Astro.redirect(`/dash/lecturer/${expectedProdiName}`);
+  }
+} else {
+  // Catch-all: if they have any other non-lecturer level, send to login
   return Astro.redirect('/login');
 }
 
-// 2. Logout handling
+// 3. Handle Logout
 if (Astro.url.searchParams.get('action') === 'logout') {
   clearAdminSession(Astro.cookies);
   return Astro.redirect('/login');
 }
 
-// 3. Fetch All Students from DB
-let dbStudents = await db.select().from(Mhs);
+// 4. Fetch Students belonging to this specific department
+const allStudents = await db.select().from(Mhs);
+const dbStudents = allStudents.filter(s => s.nim.startsWith(expectedPrefix));
 
-// Filter by department if logged-in user is a lecturer (Kaprodi)
-if (adminInfo.level.startsWith('lecturer-')) {
-  const prodiPrefix = adminInfo.level.split('-')[1];
-  dbStudents = dbStudents.filter(s => s.nim.startsWith(prodiPrefix));
-}
-
-// 4. Get Selected Student NIM from Query Parameters
+// 5. Get Selected Student NIM from Query Parameters
 let selectedNim = Astro.url.searchParams.get('nim');
+if (selectedNim && !selectedNim.startsWith(expectedPrefix)) {
+  // Reset selected student if they are outside this department
+  selectedNim = null;
+}
 if (!selectedNim && dbStudents.length > 0) {
   selectedNim = dbStudents[0].nim;
 }
 
-// 5. Fetch Details for Selected Student
+// 6. Fetch details for selected student
 let selectedStudent = null;
 let currentKrsData = null;
 let pastKrsData = null;
@@ -64,7 +82,7 @@ let billingData = null;
 let transcriptData = null;
 let khsHeaderData = null;
 
-// Health state variables for Visual Metaphor
+// Health metrics
 let isBrainHealthy = true;
 let isHeartHealthy = true;
 let isHandsHealthy = true;
@@ -76,14 +94,12 @@ if (selectedNim) {
   if (found) {
     selectedStudent = found;
 
-    // Fetch related records in parallel
     const [dbKrs, dbTranscript, dbBilling] = await Promise.all([
       db.select().from(MhsKrs).where(eq(MhsKrs.nim, selectedNim)),
       db.select().from(MhsTranscript).where(eq(MhsTranscript.nim, selectedNim)),
       db.select().from(MhsBilling).where(eq(MhsBilling.nim, selectedNim)).limit(1)
     ]);
 
-    // Reconstruct KRS structure
     const krsMap = new Map<string, any[]>();
     dbKrs.forEach(row => {
       if (!krsMap.has(row.ta)) {
@@ -115,7 +131,6 @@ if (selectedNim) {
     });
     pastKrsData = pastKrsList;
 
-    // Reconstruct Transcript & KHS header format
     transcriptData = dbTranscript.map(row => ({
       kdmk: row.kdmk,
       nmmk: row.nmmk,
@@ -139,7 +154,6 @@ if (selectedNim) {
       total_nilai
     };
 
-    // Reconstruct Billing format
     if (dbBilling.length > 0) {
       const b = dbBilling[0];
       billingData = {
@@ -159,7 +173,6 @@ if (selectedNim) {
       };
     }
 
-    // Set Visual Indicators
     isBrainHealthy = selectedStudent.gpa >= 3.0;
     isHeartHealthy = !!(billingData && billingData.status.includes("TERBAYAR"));
     isHandsHealthy = transcriptData.filter(c => c.nl === 'D' || c.nl === 'E').length === 0;
@@ -167,20 +180,11 @@ if (selectedNim) {
     isFeetHealthy = velocity >= 12;
   }
 }
-
-const formatRupiah = (value: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(value);
-};
 ---
 
 <Layout 
-  title="Risk Monitoring Dashboard | TRACIA AI"
-  description="Integrated academic and financial student dropout risk monitoring dashboard for TRACIA AI administrators."
+  title={`Lecturer Portal - ${prodi?.toUpperCase()} | TRACIA AI`}
+  description={`TRACIA AI student monitoring dashboard for Lecturer of ${prodi?.toUpperCase()} Department.`}
 >
   <style is:global>
     html, body {
@@ -199,13 +203,13 @@ const formatRupiah = (value: number) => {
           </div>
 
           <div class="flex items-center gap-4">
-            <!-- Admin Profile Display -->
-            <div class="hidden sm:flex flex-col items-end text-right">
+            <!-- Lecturer Profile Display -->
+            <div class="flex flex-col items-end text-right">
               <span class="text-xs font-semibold text-white">{adminInfo.name}</span>
-              <span class="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">{adminInfo.level}</span>
+              <span class="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Kaprodi {prodi?.toUpperCase()}</span>
             </div>
             <div class="w-8 h-8 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center">
-              <span class="text-xs font-bold text-zinc-300">AD</span>
+              <span class="text-xs font-bold text-zinc-300">LC</span>
             </div>
             
             <div class="border-l border-zinc-800 h-5 mx-1"></div>
@@ -237,8 +241,8 @@ const formatRupiah = (value: number) => {
     <main class="max-w-full w-full mx-auto px-4 sm:px-8 lg:px-12 py-8">
       <!-- Welcome Header -->
       <div class="mb-8 border-b border-zinc-800/80 pb-6">
-        <h1 class="text-2xl font-bold text-white tracking-tight">ACADEMIC INTELLIGENCE PORTAL (LECTURER / ADMIN)</h1>
-        <p class="text-xs text-zinc-500 mt-1">Integrated Monitoring & Strategic Intervention System &bull; Portal Operator: {adminInfo.name}</p>
+        <h1 class="text-2xl font-bold text-white tracking-tight">STUDENT RISK MONITORING &bull; KAPRODI {prodi?.toUpperCase()}</h1>
+        <p class="text-xs text-zinc-500 mt-1">Real-time dropout predictions and active interventions &bull; Faculty Head: {adminInfo.name}</p>
       </div>
 
       <!-- Main Layout Grid: Left list, Right details -->
@@ -250,9 +254,9 @@ const formatRupiah = (value: number) => {
 
           <!-- System Insight Card -->
           <div class="border border-zinc-800 bg-zinc-950/40 backdrop-blur-md rounded-2xl p-4 shadow-sm">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Integration Status Metrics</h3>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Department Scope</h3>
             <p class="text-xs text-zinc-550 leading-relaxed mt-2">
-              Student list updates dynamically when students log in using their SIADIN credentials or when the university databases (SIA, LMS, Finance) synchronize.
+              You are currently viewing data filtered specifically for the {prodi?.toUpperCase()} Study Program. You only have clearance to inspect and nudge students within this department scope.
             </p>
           </div>
         </div>

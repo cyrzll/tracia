@@ -1,16 +1,35 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { validateAdminSession } from '../utils/auth';
-import { LandingPagePanel } from '@/components/LandingPagePanel';
-
-// Check if admin is already logged in
-const { isLoggedIn, adminInfo } = await validateAdminSession(Astro.cookies);
-const adminName = adminInfo ? adminInfo.name : null;
+import MarketingLandingPage from '../components/MarketingLandingPage';
+import LoaderOverlay from '../components/LoaderOverlay';
 ---
 
-<Layout 
-  title="TRACIA AI | Student Risk Predictor"
-  description="Machine Learning (XGBoost) based analysis platform to monitor academic performance and detect student dropout risk probability early."
->
-  <LandingPagePanel isLoggedIn={isLoggedIn} adminName={adminName} client:load />
+<Layout title="TRACIA | Preventing Dropouts, Creating Achievers">
+  <script is:inline>
+    document.documentElement.classList.add('loading');
+    document.documentElement.classList.add('dark');
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loading');
+      document.body.classList.add('dark');
+    });
+  </script>
+  <LoaderOverlay client:load />
+  <MarketingLandingPage client:load />
 </Layout>
+
+<style is:global>
+  html, body {
+    background-color: #050505 !important;
+  }
+
+  html.loading, body.loading {
+    overflow: hidden !important;
+    height: 100% !important;
+  }
+
+  html.loaded, body.loaded {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+  }
+</style>

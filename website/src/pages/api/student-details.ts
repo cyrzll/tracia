@@ -24,6 +24,17 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       );
     }
 
+    // Access Control: Block lecturer from viewing students outside their department
+    if (adminInfo.level.startsWith('lecturer-')) {
+      const prodiPrefix = adminInfo.level.split('-')[1];
+      if (!nim.startsWith(prodiPrefix)) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: Access to student outside your department is restricted.' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // 3. Query Database in Parallel
     const [dbStudents, dbKrs, dbTranscript, dbBilling] = await Promise.all([
       db.select().from(Mhs).where(eq(Mhs.nim, nim)).limit(1),

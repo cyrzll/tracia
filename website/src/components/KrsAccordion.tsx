@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
@@ -31,25 +31,25 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
       <div className="space-y-4">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-zinc-200 hover:bg-transparent">
+            <TableRow className="border-b border-zinc-800 hover:bg-transparent">
               <TableHead className="w-12 text-center text-zinc-500 py-2.5">No</TableHead>
-              <TableHead className="text-zinc-500 py-2.5">Course Code</TableHead>
-              <TableHead className="text-zinc-500 py-2.5">Course Name</TableHead>
-              <TableHead className="text-zinc-500 py-2.5">Group</TableHead>
-              <TableHead className="text-center text-zinc-500 py-2.5">Credits</TableHead>
-              <TableHead className="text-center text-zinc-500 py-2.5">Status</TableHead>
+              <TableHead className="text-zinc-400 py-2.5">Course Code</TableHead>
+              <TableHead className="text-zinc-400 py-2.5">Course Name</TableHead>
+              <TableHead className="text-zinc-400 py-2.5">Group</TableHead>
+              <TableHead className="text-center text-zinc-400 py-2.5">Credits</TableHead>
+              <TableHead className="text-center text-zinc-400 py-2.5">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {krs.map((item, index) => (
-              <TableRow key={item.kdmk + index} className="border-b border-zinc-200 hover:bg-zinc-50/30">
+              <TableRow key={item.kdmk + index} className="border-b border-zinc-900 hover:bg-zinc-900/20">
                 <TableCell className="text-center font-mono text-zinc-500 py-2">{index + 1}</TableCell>
                 <TableCell className="font-mono text-[10px] text-zinc-500 py-2">{item.kdmk}</TableCell>
-                <TableCell className="font-semibold text-zinc-800 text-xs py-2">{item.nmmk}</TableCell>
-                <TableCell className="text-zinc-600 text-xs py-2">{item.klpk}</TableCell>
-                <TableCell className="text-center font-bold text-zinc-800 text-xs py-2">{item.sks}</TableCell>
+                <TableCell className="font-semibold text-white text-xs py-2">{item.nmmk}</TableCell>
+                <TableCell className="text-zinc-400 text-xs py-2">{item.klpk}</TableCell>
+                <TableCell className="text-center font-bold text-zinc-300 text-xs py-2">{item.sks}</TableCell>
                 <TableCell className="text-center py-2">
-                  <Badge variant="outline" className="text-[9px] border-zinc-300 text-zinc-700 bg-zinc-50">
+                  <Badge variant="outline" className="text-[9px] border-zinc-800 text-zinc-300 bg-zinc-900">
                     {item.sts}
                   </Badge>
                 </TableCell>
@@ -58,9 +58,9 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
           </TableBody>
         </Table>
 
-        <div className="flex justify-between items-center bg-zinc-50 border border-zinc-200 p-4 rounded text-xs">
-          <span className="font-bold text-zinc-600 uppercase tracking-wide">Total Credits Taken:</span>
-          <span className="font-mono font-black text-sm text-zinc-950">{totalSks} Credits</span>
+        <div className="flex justify-between items-center bg-zinc-900/40 border border-zinc-850 p-4 rounded text-xs">
+          <span className="font-bold text-zinc-400 uppercase tracking-wide">Total Credits Taken:</span>
+          <span className="font-mono font-black text-sm text-white">{totalSks} Credits</span>
         </div>
       </div>
     );
@@ -82,7 +82,7 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
 
   if (allSemesters.length === 0) {
     return (
-      <Card className="shadow-sm border border-zinc-200 bg-white p-6 text-center">
+      <Card className="shadow-sm border border-zinc-800 bg-zinc-950/40 p-6 text-center">
         <p className="text-zinc-500 text-xs">No study plan card (KRS) history recorded yet.</p>
       </Card>
     );
@@ -94,17 +94,17 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
         const isOpen = openSemester === sem.ta;
         const isCurrent = currentKrs && sem.ta === currentKrs.ta;
         return (
-          <div key={sem.ta} className="border border-zinc-200 bg-white rounded overflow-hidden shadow-sm">
+          <div key={sem.ta} className="border border-zinc-800 bg-zinc-950/40 rounded overflow-hidden shadow-sm">
             {/* Accordion Trigger Button */}
             <button
               type="button"
               onClick={() => toggleSemester(sem.ta)}
-              className="flex w-full items-center justify-between p-4 text-xs font-bold uppercase tracking-wide text-zinc-900 bg-zinc-50/50 hover:bg-zinc-50 transition-all text-left cursor-pointer select-none"
+              className="flex w-full items-center justify-between p-4 text-xs font-bold uppercase tracking-wide text-white bg-zinc-900/40 hover:bg-zinc-900/60 transition-all text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-3">
                 <span>Semester {sem.ta}</span>
                 {isCurrent && (
-                  <Badge variant="default" className="text-[8px] px-1.5 py-0.2 bg-zinc-900 text-zinc-50">
+                  <Badge variant="default" className="text-[8px] px-1.5 py-0.2 bg-white text-black font-extrabold">
                     Active
                   </Badge>
                 )}
@@ -115,7 +115,7 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
                 viewBox="0 0 24 24"
                 strokeWidth="2.5"
                 stroke="currentColor"
-                className={`w-3.5 h-3.5 text-zinc-500 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
@@ -123,10 +123,10 @@ export function KrsAccordion({ currentKrs, pastKrs }: KrsAccordionProps) {
 
             {/* Accordion Content */}
             <div
-              className={`transition-all duration-200 overflow-hidden ${isOpen ? 'h-auto border-t border-zinc-200' : 'h-0 opacity-0'}`}
+              className={`transition-all duration-200 overflow-hidden ${isOpen ? 'h-auto border-t border-zinc-800' : 'h-0 opacity-0'}`}
             >
               {isOpen && (
-                <div className="p-4 bg-white">
+                <div className="p-4 bg-transparent">
                   {renderKrsTable(sem.krs)}
                 </div>
               )}

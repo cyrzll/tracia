@@ -340,8 +340,8 @@ export default function MarketingLandingPage() {
               <Button variant="ghost" className="text-zinc-400 hover:text-white text-xs md:text-sm" asChild>
                 <a href="/login">Log In</a>
               </Button>
-              <Button size="sm" className="bg-white text-black hover:bg-zinc-200 rounded-full px-4 md:px-6 shadow-xl shadow-white/10 text-xs md:text-sm">
-                Request Demo
+              <Button size="sm" className="bg-white text-black hover:bg-zinc-200 rounded-full px-4 md:px-6 shadow-xl shadow-white/10 text-xs md:text-sm" asChild>
+                <a href="/login">Try</a>
               </Button>
             </div>
           </div>
@@ -411,8 +411,10 @@ export default function MarketingLandingPage() {
               transition={{ duration: 0.8, delay: 1.4, ease: "easeOut" }}
               className="flex flex-col sm:flex-row items-center gap-4"
             >
-              <Button size="lg" className="bg-white text-black hover:bg-zinc-200 rounded-full px-8 py-6 text-lg shadow-2xl shadow-white/10 w-full sm:w-auto">
-                Request a Demo <ArrowRight className="ml-2 w-5 h-5" />
+              <Button size="lg" className="bg-white text-black hover:bg-zinc-200 rounded-full px-8 py-6 text-lg shadow-2xl shadow-white/10 w-full sm:w-auto" asChild>
+                <a href="/login">
+                  Try <ArrowRight className="ml-2 w-5 h-5" />
+                </a>
               </Button>
               <Button size="lg" variant="outline" className="border-zinc-800 hover:bg-zinc-900 text-black dark:text-white hover:text-white rounded-full px-8 py-6 text-lg w-full sm:w-auto">
                 Explore Features

@@ -1,38 +1,34 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/db';
-import { Mhs } from '../../lib/schema';
+import { User } from '../../lib/schema';
 import { validateAdminSession } from '../../utils/auth';
 
 export const GET: APIRoute = async ({ cookies }) => {
   try {
     // 1. Authenticate Request
     const { isLoggedIn, adminInfo } = await validateAdminSession(cookies);
-    if (!isLoggedIn || !adminInfo) {
+    if (!isLoggedIn || !adminInfo || adminInfo.level !== 'admin') {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // 2. Fetch All Students
-    let students = await db.select().from(Mhs);
-
-    // Filter by department if logged-in user is a lecturer (Kaprodi)
-    if (adminInfo.level.startsWith('lecturer-')) {
-      const prodiPrefix = adminInfo.level.split('-')[1];
-      students = students.filter(s => s.nim.startsWith(prodiPrefix));
-    }
+    // 2. Fetch all users from local DB, excluding password
+    const users = await db.select({
+      username: User.username,
+      name: User.name,
+      email: User.email,
+      level: User.level
+    }).from(User);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        students
-      }),
+      JSON.stringify({ success: true, users }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('Error fetching students:', error);
+    console.error('Error fetching users:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message || 'Server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

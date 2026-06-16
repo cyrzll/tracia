@@ -8,6 +8,8 @@ import { validateAdminSession } from '../../utils/auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import Galaxy from '../../components/background/galaxy';
+import { LanguageSelector } from '../../components/navbar/LanguageSelector';
 
 let errorMessage = '';
 let successMessage = '';
@@ -21,21 +23,22 @@ if (Astro.request.method === 'POST') {
     if (!username || !password) {
       errorMessage = 'Username and password are required.';
     } else {
-      // 1. Query user with matching credentials and admin level in local DB
+      // 1. Query user with matching credentials in local DB
       const users = await db.select().from(User).where(
         and(
           eq(User.username, username),
-          eq(User.password, password),
-          eq(User.level, 'admin')
+          eq(User.password, password)
         )
       );
 
-      if (users.length > 0) {
+      const validUser = users.find(u => u.level === 'admin' || u.level.startsWith('lecturer'));
+
+      if (validUser) {
         const payload = {
-          uid: users[0].uid,
-          username: users[0].username,
-          name: users[0].name,
-          level: users[0].level
+          uid: validUser.uid,
+          username: validUser.username,
+          name: validUser.name,
+          level: validUser.level
         };
 
         // Generate JWT Access & Refresh Tokens
@@ -60,7 +63,20 @@ if (Astro.request.method === 'POST') {
         });
 
         successMessage = 'Login successful! Redirecting to dashboard...';
-        return Astro.redirect('/dash/admin');
+        if (validUser.level === 'admin') {
+          return Astro.redirect('/dash/admin');
+        } else {
+          const prefixToProdi = (lvl: string) => {
+            const p = lvl.split('-')[1];
+            if (p === 'F11') return 'TI';
+            if (p === 'F12') return 'SI';
+            if (p === 'F13') return 'MANAJEMEN';
+            if (p === 'F14') return 'DKV';
+            return p;
+          };
+          const prodiName = prefixToProdi(validUser.level);
+          return Astro.redirect(`/dash/lecturer/${prodiName}`);
+        }
       } else {
         // 2. Try calling SIADIN API login
         try {
@@ -122,14 +138,43 @@ if (mhsSession) {
   title="Login to TRACIA AI Portal | Student Risk Predictor"
   description="Log in to the TRACIA AI academic portal to monitor student academic risk status in real-time."
 >
-  <div class="relative flex items-center justify-center min-h-screen bg-zinc-50 text-zinc-800">
+  <style is:global>
+    html, body {
+      background-color: #050505 !important;
+    }
+  </style>
+
+  {/* Starfield Background */}
+  <div class="fixed inset-0 z-0 pointer-events-none opacity-40">
+    <Galaxy 
+      client:load 
+      mouseRepulsion
+      mouseInteraction
+      density={1}
+      glowIntensity={0.3}
+      saturation={0}
+      hueShift={140}
+      twinkleIntensity={0.3}
+      rotationSpeed={0.1}
+      repulsionStrength={2}
+      autoCenterRepulsion={0}
+      starSpeed={0.5}
+      speed={1}
+    />
+  </div>
+
+  <div class="relative z-10 flex items-center justify-center min-h-screen text-white">
+    <!-- Top Right Language Selector -->
+    <div class="absolute top-4 right-4 z-50">
+      <LanguageSelector client:load />
+    </div>
     <div class="w-full max-w-sm p-4 m-4">
       <!-- Logo or Brand Header -->
       <div class="mb-8 text-center">
-        <div class="inline-flex items-center justify-center w-10 h-10 mb-3 border border-zinc-200 bg-white">
-          <span class="text-zinc-900 font-black text-sm">T</span>
+        <div class="inline-flex items-center justify-center w-10 h-10 mb-3 border border-zinc-800 bg-zinc-950 rounded-lg">
+          <img src="/favicon.ico" alt="TRACIA Logo" class="w-6 h-6 object-contain" />
         </div>
-        <h1 class="text-xl font-bold tracking-tight text-zinc-900">
+        <h1 class="text-xl font-bold tracking-tight text-white">
           TRACIA AI
         </h1>
         <p class="text-[10px] tracking-widest uppercase font-semibold text-zinc-500 mt-1">
@@ -137,23 +182,23 @@ if (mhsSession) {
         </p>
       </div>
 
-      <!-- Login Shadcn Card -->
-      <Card className="rounded shadow-sm border border-zinc-200 bg-white">
+      <!-- Login Shadcn Card (Dark Glassmorphic) -->
+      <Card className="rounded-2xl border border-zinc-800 bg-zinc-950/80 backdrop-blur-md text-white shadow-2xl shadow-indigo-500/5">
         <CardHeader>
-          <CardTitle className="text-zinc-900">Admin Account Login</CardTitle>
-          <CardDescription className="text-zinc-500">Enter your credentials to access the monitoring system.</CardDescription>
+          <CardTitle className="text-white">Admin Account Login</CardTitle>
+          <CardDescription className="text-zinc-400">Enter your credentials to access the monitoring system.</CardDescription>
         </CardHeader>
         <CardContent>
           {errorMessage && (
-            <div class="flex items-start gap-2 p-3 mb-4 text-xs text-zinc-800 border border-zinc-200 bg-zinc-50">
-              <span class="text-zinc-900 font-bold">[!]</span>
+            <div class="flex items-start gap-2 p-3 mb-4 text-xs text-red-200 border border-red-900/50 bg-red-950/30 rounded-xl">
+              <span class="text-red-400 font-bold">[!]</span>
               <span>{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div class="flex items-start gap-2 p-3 mb-4 text-xs text-zinc-800 border border-zinc-200 bg-zinc-50">
-              <span class="text-zinc-900 font-bold">[✓]</span>
+            <div class="flex items-start gap-2 p-3 mb-4 text-xs text-indigo-200 border border-indigo-900/50 bg-indigo-950/30 rounded-xl">
+              <span class="text-indigo-400 font-bold">[✓]</span>
               <span>{successMessage}</span>
             </div>
           )}
@@ -161,7 +206,7 @@ if (mhsSession) {
           <form method="POST" class="space-y-4">
             <!-- Username Input -->
             <div class="space-y-1.5">
-              <label for="username" class="block text-[10px] font-bold uppercase tracking-wider text-zinc-650">
+              <label for="username" class="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 Username
               </label>
               <Input
@@ -170,13 +215,13 @@ if (mhsSession) {
                 type="text"
                 required
                 placeholder="admin"
-                className="bg-white border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:ring-zinc-400 focus:border-zinc-400"
+                className="bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500 focus:ring-indigo-500 focus:border-indigo-500 rounded-xl"
               />
             </div>
 
             <!-- Password Input -->
             <div class="space-y-1.5">
-              <label for="password" class="block text-[10px] font-bold uppercase tracking-wider text-zinc-650">
+              <label for="password" class="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 Password
               </label>
               <Input
@@ -185,25 +230,25 @@ if (mhsSession) {
                 type="password"
                 required
                 placeholder="••••••••"
-                className="bg-white border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:ring-zinc-400 focus:border-zinc-400"
+                className="bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500 focus:ring-indigo-500 focus:border-indigo-500 rounded-xl"
               />
             </div>
 
             <!-- Remember & Forgot Password -->
-            <div class="flex items-center justify-between text-[10px] text-zinc-500 pt-1">
-              <label class="flex items-center gap-1.5 cursor-pointer hover:text-zinc-800 select-none">
-                <input type="checkbox" class="w-3 h-3 rounded border-zinc-200 bg-white text-zinc-900 focus:ring-zinc-400" />
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 pt-1">
+              <label class="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                <input type="checkbox" class="w-3 h-3 rounded border-zinc-850 bg-zinc-900 text-indigo-650 focus:ring-indigo-500" />
                 Remember me
               </label>
-              <a href="#" class="hover:text-zinc-800 transition-colors">
+              <a href="#" class="hover:text-white transition-colors">
                 Forgot Password?
               </a>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit Button (White theme matching requested visual) -->
             <Button
               type="submit"
-              className="w-full mt-2 cursor-pointer bg-zinc-900 text-zinc-50 hover:bg-zinc-800"
+              className="w-full mt-2 cursor-pointer bg-white text-black hover:bg-zinc-200 rounded-xl py-6 font-bold text-sm shadow-xl shadow-white/10"
             >
               Log In to Portal
             </Button>
