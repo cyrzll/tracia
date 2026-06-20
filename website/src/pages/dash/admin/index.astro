@@ -185,6 +185,25 @@ const formatRupiah = (value: number) => {
   <style is:global>
     html, body {
       background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+    
+    /* Force high contrast white text for all text elements */
+    html, body, p, span, h1, h2, h3, h4, h5, h6, label, li, td, th, dt, dd, select, input, textarea {
+      color: #ffffff !important;
+    }
+    
+    /* Override low-contrast text colors */
+    .text-zinc-500, 
+    .text-zinc-400, 
+    .text-zinc-300, 
+    .text-zinc-350, 
+    .text-zinc-550, 
+    .text-zinc-405, 
+    .text-zinc-600,
+    .text-gray-500, 
+    .text-gray-400 {
+      color: #ffffff !important;
     }
   </style>
 

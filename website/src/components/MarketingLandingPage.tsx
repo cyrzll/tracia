@@ -109,6 +109,13 @@ const universities = [
     country: "Philippines",
     flag: "ph",
     image: "https://images.unsplash.com/photo-1627556704353-016ed4137255?q=80&w=500&auto=format"
+  },
+  {
+    id: 6,
+    name: "National University of Timor-Leste",
+    country: "Timor-Leste",
+    flag: "tl",
+    image: "https://images.unsplash.com/photo-1498243691581-b148c5c4ee7d?q=80&w=500&auto=format"
   }
 ];
 
@@ -245,7 +252,7 @@ export default function MarketingLandingPage() {
         <Galaxy 
           mouseRepulsion
           mouseInteraction
-          density={1}
+          density={0.6}
           glowIntensity={0.3}
           saturation={0}
           hueShift={140}
@@ -537,13 +544,7 @@ export default function MarketingLandingPage() {
               ))}
             </div>
             <div className="relative aspect-video rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
-              <img src="https://placehold.co/1322x741" alt="Dashboard Preview" className="object-cover w-full h-full" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center">
-                 <div className="text-center p-8">
-                   <h4 className="text-3xl font-bold mb-2 uppercase tracking-widest">Dashboard Overview</h4>
-                   <p className="text-zinc-300">Intelligent Dashboards for Faculty and Staff</p>
-                 </div>
-              </div>
+              <img src="/animation-pam-01.gif" alt="Dashboard Preview" className="object-cover w-full h-full" />
             </div>
           </div>
         </div>
@@ -552,7 +553,7 @@ export default function MarketingLandingPage() {
       {/* ASEAN Universities Section */}
       <section className="py-24 bg-transparent border-y border-zinc-900/40 overflow-visible relative z-10">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative min-h-[220vh] max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative min-h-[300vh] max-w-6xl mx-auto">
             {/* Left Column: Titles and Active Country Display */}
             <div className="lg:col-span-6 self-stretch relative flex flex-col justify-start">
               <div className="lg:sticky lg:top-[calc(50vh-180px)] pt-10 lg:pt-0 text-left">

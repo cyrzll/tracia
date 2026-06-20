@@ -54,3 +54,13 @@ export const MhsBilling = mysqlTable('MhsBilling', {
   via: varchar('via', { length: 255 }).notNull(),
   tanggal: varchar('tanggal', { length: 100 }).notNull(),
 });
+
+export const MhsChat = mysqlTable('MhsChat', {
+  id: int('id').primaryKey().autoincrement(),
+  nim: varchar('nim', { length: 50 }).notNull(),
+  sender: varchar('sender', { length: 50 }).notNull(), // 'user' | 'ai' | 'lecturer'
+  text: text('text').notNull(),
+  time: varchar('time', { length: 50 }).notNull(),
+  createdAt: datetime('createdAt').default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+

@@ -35,6 +35,7 @@ interface MhsDashboardPanelProps {
   isHandsHealthy: boolean;
   isFeetHealthy: boolean;
   velocity: number;
+  allStudents?: any[];
 }
 
 // Safe LocalStorage hook
@@ -73,7 +74,7 @@ const OPPORTUNITIES = [
     location: "Jakarta, Indonesia (Hybrid)",
     gpaReq: 3.0,
     matchReason: "Matches your programming skills and cumulative GPA.",
-    link: "#"
+    link: "https://www.tokopedia.com/careers"
   },
   {
     id: "opt-2",
@@ -83,7 +84,7 @@ const OPPORTUNITIES = [
     location: "National",
     gpaReq: 3.2,
     matchReason: "High GPA and SKS match.",
-    link: "#"
+    link: "https://djarumbeasiswaplus.org"
   },
   {
     id: "opt-3",
@@ -93,7 +94,7 @@ const OPPORTUNITIES = [
     location: "National",
     gpaReq: 0,
     matchReason: "Excellent match for student coders.",
-    link: "#"
+    link: "https://puspresnas.kemdikbud.go.id"
   },
   {
     id: "opt-4",
@@ -103,7 +104,7 @@ const OPPORTUNITIES = [
     location: "Online",
     gpaReq: 0,
     matchReason: "Compliments your SKS credit requirements in Computer Science.",
-    link: "#"
+    link: "https://aws.amazon.com/training/awsacademy"
   },
   {
     id: "opt-5",
@@ -113,7 +114,7 @@ const OPPORTUNITIES = [
     location: "Singapore",
     gpaReq: 3.5,
     matchReason: "Requires high academic performance.",
-    link: "#"
+    link: "https://careers.shopee.sg"
   },
   {
     id: "opt-6",
@@ -123,7 +124,7 @@ const OPPORTUNITIES = [
     location: "United States / ASEAN",
     gpaReq: 3.25,
     matchReason: "Fits your leadership and student profile.",
-    link: "#"
+    link: "https://asean.usmission.gov/yseali/yseali-academic-fellowships"
   }
 ];
 
@@ -139,7 +140,8 @@ export function MhsDashboardPanel({
   isHeartHealthy,
   isHandsHealthy,
   isFeetHealthy,
-  velocity
+  velocity,
+  allStudents
 }: MhsDashboardPanelProps) {
   const [lang, setLang] = React.useState<LangCode>('en');
 
@@ -168,17 +170,121 @@ export function MhsDashboardPanel({
   const [streak, setStreak] = useLocalStorage<number>("mhs_streak", 3);
   const [completedQuests, setCompletedQuests] = useLocalStorage<string[]>("mhs_completed_quests", []);
   const [recoveryChecklist, setRecoveryChecklist] = useLocalStorage<string[]>("mhs_recovery_checklist", []);
-  const [messages, setMessages] = useLocalStorage<Array<{ sender: 'ai' | 'user' | 'lecturer'; text: string; time: string }>>(
-    `mhs_chat_${student.nim}`,
-    [
-      { sender: 'ai', text: `Hello ${student.nama}! I am your TRACIA AI Mentor. I have reviewed your academic profile (GPA: ${student.gpa.toFixed(2)}, Risk: ${prediction?.risk_level || 'Low'}). How can I support your study progress today?`, time: "10:00" }
-    ]
-  );
+  const [messages, setMessages] = React.useState<Array<{ sender: 'ai' | 'user' | 'lecturer'; text: string; time: string }>>([]);
+  const [isChatLoading, setIsChatLoading] = React.useState(true);
   const [inputMsg, setInputMsg] = React.useState("");
+  const [isTyping, setIsTyping] = React.useState(false);
 
   // Search & Filter State for Opportunities
   const [searchQuery, setSearchQuery] = React.useState("");
   const [opportunityFilter, setOpportunityFilter] = React.useState("All");
+  const [opportunities, setOpportunities] = React.useState<any[]>(OPPORTUNITIES);
+  const [isOpportunitiesLoading, setIsOpportunitiesLoading] = React.useState(false);
+
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  // Load chat history from MySQL DB on mount
+  React.useEffect(() => {
+    let isMounted = true;
+    const loadChatHistory = async () => {
+      if (!student.nim) return;
+      setIsChatLoading(true);
+      try {
+        const res = await fetch(`/api/chat?nim=${encodeURIComponent(student.nim)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            if (data.success && data.messages && data.messages.length > 0) {
+              setMessages(data.messages);
+            } else {
+              // Populate welcome message
+              const welcomeTime = "10:00";
+              const welcomeText = `Hello ${student.nama}! I am your TRACIA AI Mentor. I have reviewed your academic profile (GPA: ${student.gpa.toFixed(2)}, Risk: ${prediction?.risk_level || 'Low'}). How can I support your study progress today?`;
+              const welcomeMsg = { sender: 'ai' as const, text: welcomeText, time: welcomeTime };
+              setMessages([welcomeMsg]);
+              
+              // Save welcome message to DB
+              await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  nim: student.nim,
+                  sender: "ai",
+                  text: welcomeText,
+                  time: welcomeTime
+                })
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error loading chat history:", err);
+      } finally {
+        if (isMounted) {
+          setIsChatLoading(false);
+        }
+      }
+    };
+    loadChatHistory();
+    return () => {
+      isMounted = false;
+    };
+  }, [student.nim]);
+
+  // Smooth scroll to top of viewport on tab change
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab]);
+
+  React.useEffect(() => {
+    if (activeTab !== "opportunities") return;
+
+    let isMounted = true;
+    setIsOpportunitiesLoading(true);
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const url = `/api/search-opportunities?q=${encodeURIComponent(searchQuery)}&type=${encodeURIComponent(opportunityFilter)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            if (data.success && data.opportunities && data.opportunities.length > 0) {
+              setOpportunities(data.opportunities);
+            } else {
+              setOpportunities(OPPORTUNITIES);
+            }
+          }
+        } else {
+          if (isMounted) {
+            setOpportunities(OPPORTUNITIES);
+          }
+        }
+      } catch (err) {
+        console.error("Live opportunities search error:", err);
+        if (isMounted) {
+          setOpportunities(OPPORTUNITIES);
+        }
+      } finally {
+        if (isMounted) {
+          setIsOpportunitiesLoading(false);
+        }
+      }
+    }, 500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(delayDebounce);
+    };
+  }, [searchQuery, opportunityFilter, activeTab]);
 
   // Success Potential Calculation
   const successPotential = prediction ? Math.round((1 - prediction.dropout_risk_probability) * 100) : 100;
@@ -219,43 +325,134 @@ export function MhsDashboardPanel({
   };
 
   // Chat with AI Mentor logic
-  const handleSendMessage = (textToSend = inputMsg) => {
+  const handleSendMessage = async (textToSend = inputMsg) => {
     if (!textToSend.trim()) return;
 
-    const newMsgs = [...messages, { sender: 'user' as const, text: textToSend, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }];
+    const userTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const userMsg = { sender: 'user' as const, text: textToSend, time: userTime };
+    const newMsgs = [...messages, userMsg];
     setMessages(newMsgs);
     setInputMsg("");
 
-    // AI Response Simulation
-    setTimeout(() => {
-      let responseText = "";
-      const lower = textToSend.toLowerCase();
+    // Save user message to DB
+    try {
+      await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nim: student.nim,
+          sender: "user",
+          text: textToSend,
+          time: userTime
+        })
+      });
+    } catch (e) {
+      console.error("Failed to save user message to DB:", e);
+    }
 
-      if (lower.includes("gpa") || lower.includes("ipk") || lower.includes("nilai")) {
-        responseText = `Your current Cumulative GPA is ${student.gpa.toFixed(2)}. ${
-          student.gpa >= 3.0 
-            ? "This is a strong performance! Continue to maintain this in your major classes to stay eligible for top internships and scholarships." 
-            : "Since it is below 3.0, let's focus on academic recovery. Retaking courses with D/E grades is the fastest way to pull your GPA back above 3.0."
-        }`;
-      } else if (lower.includes("risk") || lower.includes("dropout") || lower.includes("bahaya")) {
-        responseText = `According to the machine learning prediction, your Dropout Risk Level is ${prediction?.risk_level || 'Low'} (${(prediction?.dropout_risk_probability ? prediction.dropout_risk_probability * 100 : 0).toFixed(1)}%). ${
-          student.risk_level === 'Low'
-            ? "You are doing great! Keep attending your classes regularly and submit all assignments on time."
-            : "Let's work together to manage this. The key factors include addressing your billing status and discussing with your academic advisor to request interventions."
-        }`;
-      } else if (lower.includes("scholarship") || lower.includes("beasiswa") || lower.includes("magang") || lower.includes("intern")) {
-        responseText = `Based on your profile, you have a solid matching score for the Djarum Beasiswa Plus scholarship and the AI Engineer Internship at Tokopedia. You can find detailed requirements in the Opportunity Hub tab!`;
-      } else if (lower.includes("quest") || lower.includes("xp") || lower.includes("game")) {
-        responseText = `You are currently Level ${level} with ${xp} XP. Complete your daily quests and study checklist items to earn more XP and climb the university leaderboard!`;
-      } else {
-        responseText = `I understand. Keeping your attendance above 90% and resolving any unpaid financial billing are priority tasks to maintain a high academic potential score. Is there anything else you want to ask about your study plan (KRS) or grades?`;
+    // AI Response Logic
+    const lower = textToSend.toLowerCase();
+    let responseText = "";
+
+    // Helper to check suitability
+    const getSuitableOps = () => {
+      const eligible = [];
+      const ineligible = [];
+      for (const opt of OPPORTUNITIES) {
+        if (opt.gpaReq === 0 || student.gpa >= opt.gpaReq) {
+          eligible.push(opt);
+        } else {
+          ineligible.push(opt);
+        }
       }
+      return { eligible, ineligible };
+    };
 
-      setMessages([
-        ...newMsgs,
-        { sender: 'ai', text: responseText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-      ]);
-    }, 1000);
+    const { eligible } = getSuitableOps();
+
+    // 1. All messages now go to the AI Mentor API (Ollama Qwen 0.5B)
+    setIsTyping(true);
+    try {
+      const studentData = {
+        Semester: student.semester || 1,
+        Current_GPA: student.gpa || 0,
+        GPA_Trend: 0,
+        Attendance_Rate: 95,
+        Credit_Accumulation_Velocity: velocity || 0,
+        Failed_Course_Count: failedCourses,
+        Total_Credits_Completed: khsHeader ? khsHeader.total_sks : (student.sks || 0),
+        Payment_Status: isHeartHealthy ? 'Paid' : 'Unpaid',
+        Average_Final_Score: 75,
+        Highest_Final_Score: 85,
+        Lowest_Final_Score: 60,
+        Final_Score_Std: 5
+      };
+
+      const getMajorName = (nimStr: string) => {
+        if (nimStr.startsWith("F11")) return "Informatics Engineering";
+        if (nimStr.startsWith("F12")) return "Information Systems";
+        if (nimStr.startsWith("F13")) return "Management";
+        if (nimStr.startsWith("F14")) return "Visual Communication Design";
+        return "Informatics Engineering";
+      };
+
+      const response = await fetch("http://localhost:4322/mentor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          student_data: studentData,
+          student_name: student.nama,
+          nim: student.nim || "",
+          major: getMajorName(student.nim || ""),
+          user_message: textToSend,
+          krs_courses: currentKrs?.krs.map(c => c.nmmk) || [],
+          failed_courses: transcript?.filter(c => c.nl === 'D' || c.nl === 'E').map(c => c.nmmk) || [],
+          unpaid_bill: billing && !billing.status.includes("TERBAYAR") ? Number(billing.total_tagih) : 0,
+          level: level,
+          xp: xp
+        })
+      });
+
+      // Artificial delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      if (response.ok) {
+        const data = await response.json();
+        responseText = data.advice || data.fallback_advice;
+      } else {
+        throw new Error("API Offline");
+      }
+    } catch (err) {
+      // Fallback to basic response if API is offline
+      const failedList = transcript?.filter(c => c.nl === 'D' || c.nl === 'E').map(c => c.nmmk).join(", ") || "none";
+      const billAmt = billing && !billing.status.includes("TERBAYAR") ? `Rp ${billing.total_tagih.toLocaleString('id-ID')}` : "none";
+      const resolvedMajor = student ? (student.nim ? (student.nim.startsWith("F11") ? "Informatics Engineering" : student.nim.startsWith("F12") ? "Information Systems" : student.nim.startsWith("F13") ? "Management" : student.nim.startsWith("F14") ? "Visual Communication Design" : "Informatics") : "Informatics") : "Informatics";
+      responseText = `Hello ${student.nama}, I'm currently processing your academic profile for ${resolvedMajor}. Your GPA is ${student.gpa.toFixed(2)} and your risk level is ${prediction?.risk_level || 'Low'}. Outstanding issues: failed courses (${failedList}), unpaid bills (${billAmt}). How can I help you today?`;
+    } finally {
+      setIsTyping(false);
+    }
+
+    const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Save AI response to DB
+    try {
+      await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nim: student.nim,
+          sender: "ai",
+          text: responseText,
+          time: aiTime
+        })
+      });
+    } catch (e) {
+      console.error("Failed to save AI response to DB:", e);
+    }
+
+    setMessages([
+      ...newMsgs,
+      { sender: 'ai', text: responseText, time: aiTime }
+    ]);
   };
 
   // Mock Recovery Journey Roadmap Steps
@@ -275,13 +472,29 @@ export function MhsDashboardPanel({
   ];
 
   // Mock Leaderboard
-  const leaderboard = [
-    { rank: 1, name: "David Alfarizi", gpa: 3.92, xp: 850, isCurrent: false },
-    { rank: 2, name: "Lestari Wahyuni", gpa: 3.85, xp: 720, isCurrent: false },
-    { rank: 3, name: "Budi Santoso", gpa: 3.74, xp: 600, isCurrent: false },
-    { rank: 4, name: student.nama, gpa: student.gpa, xp: xp, isCurrent: true },
-    { rank: 5, name: "Siti Rahma", gpa: 3.12, xp: 110, isCurrent: false }
-  ].sort((a, b) => b.xp - a.xp).map((item, index) => ({ ...item, rank: index + 1 }));
+  // Real-time Leaderboard from database
+  const leaderboard = (allStudents || []).map((s) => {
+    const isCurrent = s.nim === student.nim;
+    let studentXp = 100;
+    if (isCurrent) {
+      studentXp = xp;
+    } else {
+      if (s.nama.includes("David")) studentXp = 850;
+      else if (s.nama.includes("Lestari")) studentXp = 720;
+      else if (s.nama.includes("Budi")) studentXp = 600;
+      else if (s.nama.includes("Siti")) studentXp = 110;
+      else studentXp = Math.round(s.gpa * 150);
+    }
+    return {
+      name: s.nama,
+      gpa: s.gpa,
+      xp: studentXp,
+      isCurrent
+    };
+  })
+  .sort((a, b) => b.xp - a.xp)
+  .slice(0, 5)
+  .map((item, index) => ({ ...item, rank: index + 1 }));
 
   // Sidebar Tabs config
   const tabs = [
@@ -297,7 +510,7 @@ export function MhsDashboardPanel({
     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
       
       {/* Left Sidebar Navigation */}
-      <div className="md:col-span-1 space-y-4">
+      <div className="md:col-span-1 space-y-4 md:sticky md:top-44 self-start h-fit">
         {/* Student Quick Profile Card */}
         <Card className="border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-md overflow-hidden p-5 flex flex-col items-center rounded-2xl text-white">
           <div className="w-24 h-24 rounded-2xl border border-zinc-800 overflow-hidden bg-zinc-900 mb-3 relative group">
@@ -323,7 +536,7 @@ export function MhsDashboardPanel({
         </Card>
 
         {/* Tab Selection Navigation */}
-        <div className="flex flex-col gap-1 border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-md p-2 rounded-2xl">
+        <div className="flex flex-col gap-1 border border-zinc-800/80 bg-zinc-950/40 backdrop-blur-md p-2 rounded-2xl relative">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -331,14 +544,21 @@ export function MhsDashboardPanel({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-xs font-medium tracking-wide transition-all duration-300 ${
-                  isActive 
-                    ? "bg-zinc-850/80 text-white shadow-md shadow-indigo-500/5 border border-zinc-800/50" 
-                    : "text-zinc-400 hover:text-white hover:bg-zinc-900/30"
-                }`}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-xs font-medium tracking-wide transition-all duration-300 relative cursor-pointer group"
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-indigo-400" : "text-zinc-400"}`} />
-                {tab.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    className="absolute inset-0 bg-zinc-850/80 border border-zinc-800/50 rounded-xl z-0"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-3 w-full">
+                  <Icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? "text-indigo-400" : "text-zinc-400 group-hover:text-white"}`} />
+                  <span className={`transition-colors duration-300 ${isActive ? "text-white" : "text-zinc-400 group-hover:text-white"}`}>
+                    {tab.label}
+                  </span>
+                </span>
               </button>
             )
           })}
@@ -466,7 +686,7 @@ export function MhsDashboardPanel({
                         AI Growth Insights
                       </CardTitle>
                     </div>
-                    <p className="text-xs text-zinc-350 leading-relaxed font-medium">
+                    <p className="text-xs text-white leading-relaxed font-medium">
                       {prediction?.risk_level === 'Low' ? (
                         "You are performing above academic benchmarks. SKS accumulative speeds match graduation pathways. To optimize career paths, consider reviewing scholarship recommendations in the Opportunity Hub."
                       ) : (
@@ -688,11 +908,11 @@ export function MhsDashboardPanel({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-6 max-w-3xl mx-auto w-full"
             >
               {/* Filter Row */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-between items-center border border-zinc-800 bg-zinc-950/40 backdrop-blur-md p-4 rounded-2xl text-white">
-                <div className="relative w-full sm:max-w-xs">
+              <div className="flex flex-col gap-4 items-center border border-zinc-800 bg-zinc-950/40 backdrop-blur-md p-5 rounded-2xl text-white">
+                <div className="relative w-full max-w-md">
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
                   <input 
                     type="text" 
@@ -703,7 +923,7 @@ export function MhsDashboardPanel({
                   />
                 </div>
                 
-                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto" data-lenis-prevent>
+                <div className="flex flex-wrap gap-2 justify-center w-full" data-lenis-prevent>
                   {["All", "Internship", "Scholarship", "Competition", "Certification"].map((filter) => (
                     <button
                       key={filter}
@@ -718,75 +938,111 @@ export function MhsDashboardPanel({
                     </button>
                   ))}
                 </div>
-              </div>
-
-              {/* Grid of opportunities */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {OPPORTUNITIES.filter(opt => {
-                  const matchesSearch = opt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                      opt.company.toLowerCase().includes(searchQuery.toLowerCase());
-                  const matchesFilter = opportunityFilter === "All" || opt.type === opportunityFilter;
-                  return matchesSearch && matchesFilter;
-                }).map((opt) => {
-                  const isBookmarked = bookmarks.includes(opt.id);
-                  // Dynamic AI Match Score computation
-                  let matchScore = 75;
-                  if (student.gpa >= opt.gpaReq && opt.gpaReq > 0) matchScore = 95;
-                  else if (opt.gpaReq > 0) matchScore = 55;
-                  
-                  return (
-                    <Card key={opt.id} className="border border-zinc-800 bg-zinc-950/40 backdrop-blur-md p-5 rounded-2xl flex flex-col justify-between hover:border-zinc-700 transition-all duration-300">
+                    {/* Grid of opportunities */}
+              {isOpportunitiesLoading ? (
+                <div className="flex flex-col gap-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Card key={i} className="border border-zinc-800 bg-zinc-950/40 backdrop-blur-md p-5 rounded-2xl flex flex-col justify-between animate-pulse">
                       <div>
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <Badge className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] uppercase font-bold">{opt.type}</Badge>
-                            <h3 className="text-sm font-bold text-white mt-2 leading-snug">{opt.title}</h3>
-                            <span className="text-[10px] text-zinc-400 font-semibold">{opt.company}</span>
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2 w-2/3">
+                            <div className="h-4 bg-zinc-800 rounded w-1/4"></div>
+                            <div className="h-5 bg-zinc-800 rounded w-full mt-2"></div>
+                            <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
                           </div>
-                          
-                          <button 
-                            onClick={() => toggleBookmark(opt.id)}
-                            className="text-zinc-500 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                          >
-                            {isBookmarked ? (
-                              <BookmarkCheck className="w-4 h-4 text-indigo-400" />
-                            ) : (
-                              <Bookmark className="w-4 h-4" />
-                            )}
-                          </button>
+                          <div className="h-8 w-8 bg-zinc-800 rounded-lg"></div>
                         </div>
-                        
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500">
-                          <div>
-                            <span className="text-zinc-400">Location:</span>
-                            <span className="text-zinc-300 block font-sans">{opt.location}</span>
-                          </div>
-                          <div>
-                            <span className="text-zinc-400">Min GPA:</span>
-                            <span className="text-zinc-300 block">{opt.gpaReq > 0 ? opt.gpaReq.toFixed(2) : "None"}</span>
-                          </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <div className="h-8 bg-zinc-850 rounded-xl"></div>
+                          <div className="h-8 bg-zinc-850 rounded-xl"></div>
                         </div>
-
-                        <p className="text-[11px] text-zinc-400 mt-4 leading-relaxed bg-zinc-900/20 p-2.5 rounded-xl border border-zinc-900">
-                          <span className="font-bold text-indigo-400 uppercase tracking-wider text-[9px] block mb-0.5">AI MATCH INSIGHT</span>
-                          {opt.matchReason}
-                        </p>
+                        <div className="mt-4 h-12 bg-zinc-850 rounded-xl border border-zinc-900/50"></div>
                       </div>
-
-                      <div className="mt-6 border-t border-zinc-900 pt-4 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest">AI Match Score</span>
-                          <span className={`text-xs font-black ${matchScore >= 90 ? 'text-emerald-400' : matchScore >= 70 ? 'text-indigo-400' : 'text-zinc-400'}`}>{matchScore}%</span>
-                        </div>
-                        
-                        <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-8 px-3 py-1 text-xs font-bold cursor-pointer">
-                          Apply Now
-                        </Button>
+                      <div className="mt-6 border-t border-zinc-900/50 pt-4 flex items-center justify-between">
+                        <div className="h-4 bg-zinc-800 rounded w-1/3"></div>
+                        <div className="h-8 bg-zinc-800 rounded-xl w-24"></div>
                       </div>
                     </Card>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {opportunities.filter(opt => {
+                    const isStatic = OPPORTUNITIES.some(o => o.id === opt.id);
+                    if (!isStatic) return true; // already filtered by API
+
+                    const matchesSearch = opt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                         opt.company.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesFilter = opportunityFilter === "All" || opt.type === opportunityFilter;
+                    return matchesSearch && matchesFilter;
+                  }).map((opt) => {
+                    const isBookmarked = bookmarks.includes(opt.id);
+                    // Dynamic AI Match Score computation
+                    let matchScore = 75;
+                    if (student.gpa >= opt.gpaReq && opt.gpaReq > 0) matchScore = 95;
+                    else if (opt.gpaReq > 0) matchScore = 55;
+                    
+                    return (
+                      <Card key={opt.id} className="border border-zinc-800 bg-zinc-950/40 backdrop-blur-md p-5 rounded-2xl flex flex-col justify-between hover:border-zinc-700 transition-all duration-300">
+                        <div>
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <Badge className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] uppercase font-bold">{opt.type}</Badge>
+                              <h3 className="text-sm font-bold text-white mt-2 leading-snug">{opt.title}</h3>
+                              <span className="text-[10px] text-zinc-400 font-semibold">{opt.company}</span>
+                            </div>
+                            
+                            <button 
+                              onClick={() => toggleBookmark(opt.id)}
+                              className="text-zinc-500 hover:text-white p-1 rounded transition-colors cursor-pointer"
+                            >
+                              {isBookmarked ? (
+                                <BookmarkCheck className="w-4 h-4 text-indigo-400" />
+                              ) : (
+                                <Bookmark className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          
+                          <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500">
+                            <div>
+                              <span className="text-zinc-400">Location:</span>
+                              <span className="text-zinc-300 block font-sans">{opt.location}</span>
+                            </div>
+                            <div>
+                              <span className="text-zinc-400">Min GPA:</span>
+                              <span className="text-zinc-300 block">{opt.gpaReq > 0 ? opt.gpaReq.toFixed(2) : "None"}</span>
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] text-zinc-400 mt-4 leading-relaxed bg-zinc-900/20 p-2.5 rounded-xl border border-zinc-900">
+                            <span className="font-bold text-indigo-400 uppercase tracking-wider text-[9px] block mb-0.5">AI MATCH INSIGHT</span>
+                            {opt.matchReason}
+                          </p>
+                        </div>
+
+                        <div className="mt-6 border-t border-zinc-900 pt-4 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest">AI Match Score</span>
+                            <span className={`text-xs font-black ${matchScore >= 90 ? 'text-emerald-400' : matchScore >= 70 ? 'text-indigo-400' : 'text-zinc-400'}`}>{matchScore}%</span>
+                          </div>
+                          
+                          <Button className="bg-white text-black hover:bg-zinc-200 rounded-xl h-8 px-3 py-1 text-xs font-bold cursor-pointer" asChild>
+                            <a href={opt.link} target="_blank" rel="noopener noreferrer">
+                              Apply Now
+                            </a>
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                  {opportunities.length === 0 && (
+                    <div className="text-center py-8 text-zinc-500 text-xs">
+                      No opportunities found. Try another search or filter.
+                    </div>
+                  )}
+                </div>
+              )}          </div>
 
               {/* Goal Setting tracker */}
               <Card className="border border-zinc-800 bg-zinc-950/40 backdrop-blur-md p-6 rounded-2xl">
@@ -1008,30 +1264,50 @@ export function MhsDashboardPanel({
 
                   {/* Messages Bubble Area */}
                   <div className="h-[370px] overflow-y-auto space-y-4 pr-1 font-sans text-xs" data-lenis-prevent>
-                    {messages.map((msg, index) => (
-                      <div 
-                        key={index}
-                        className={`flex flex-col ${
-                          msg.sender === 'user' ? 'items-end' : 'items-start'
-                        }`}
-                      >
-                        <div className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
-                          msg.sender === 'user' 
-                            ? 'bg-indigo-600 text-white rounded-tr-none' 
-                            : msg.sender === 'lecturer'
-                            ? 'bg-amber-600/10 border border-amber-500/20 text-white rounded-tl-none'
-                            : 'bg-zinc-900/80 border border-zinc-800 text-zinc-300 rounded-tl-none'
-                        }`}>
-                          {msg.sender === 'lecturer' && (
-                            <span className="text-[8px] uppercase font-bold text-amber-400 tracking-wider block mb-1">
-                              Lecturer Intervention Notice
-                            </span>
-                          )}
-                          {msg.text}
-                        </div>
-                        <span className="text-[8px] text-zinc-550 font-mono mt-1 px-1">{msg.time}</span>
+                    {isChatLoading ? (
+                      <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-2">
+                        <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
+                        <span>Loading chat history...</span>
                       </div>
-                    ))}
+                    ) : (
+                      messages.map((msg, index) => (
+                        <div 
+                          key={index}
+                          className={`flex flex-col ${
+                            msg.sender === 'user' ? 'items-end' : 'items-start'
+                          }`}
+                        >
+                          <div className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
+                            msg.sender === 'user' 
+                              ? 'bg-indigo-600 text-white rounded-tr-none' 
+                              : msg.sender === 'lecturer'
+                              ? 'bg-amber-600/10 border border-amber-500/20 text-white rounded-tl-none'
+                              : 'bg-zinc-900/80 border border-zinc-800 text-zinc-300 rounded-tl-none'
+                          }`}>
+                            {msg.sender === 'lecturer' && (
+                              <span className="text-[8px] uppercase font-bold text-amber-400 tracking-wider block mb-1">
+                                Lecturer Intervention Notice
+                              </span>
+                            )}
+                            {msg.text}
+                          </div>
+                          <span className="text-[8px] text-zinc-550 font-mono mt-1 px-1">{msg.time}</span>
+                        </div>
+                      ))
+                    )}
+                    {isTyping && (
+                      <div className="flex flex-col items-start animate-pulse">
+                        <div className="bg-zinc-900/80 border border-zinc-800 text-zinc-300 p-3 rounded-2xl rounded-tl-none">
+                          <div className="flex gap-1.5 items-center py-1 px-1">
+                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
+                          </div>
+                        </div>
+                        <span className="text-[8px] text-zinc-550 font-mono mt-1 px-1">Thinking...</span>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
                   </div>
                 </div>
 
@@ -1052,23 +1328,6 @@ export function MhsDashboardPanel({
                     >
                       <Send className="w-3.5 h-3.5" />
                     </Button>
-                  </div>
-                  
-                  {/* Quick responses list */}
-                  <div className="flex gap-2.5 mt-3 overflow-x-auto pb-1" data-lenis-prevent>
-                    {[
-                      "How do I improve my GPA?",
-                      "Am I in danger of dropping out?",
-                      "What scholarships fit my SKS?"
-                    ].map((btnText, i) => (
-                      <button 
-                        key={i}
-                        onClick={() => handleSendMessage(btnText)}
-                        className="text-[9px] font-bold px-2.5 py-1.5 border border-zinc-900 hover:border-zinc-850 hover:bg-zinc-900/30 text-zinc-400 hover:text-white rounded-xl whitespace-nowrap cursor-pointer transition-all"
-                      >
-                        {btnText}
-                      </button>
-                    ))}
                   </div>
                 </div>
               </Card>

@@ -22,6 +22,18 @@ if (Astro.request.method === 'POST') {
 
     if (!username || !password) {
       errorMessage = 'Username and password are required.';
+    } else if (username === 'F11.2024.99999' && (password === 'budi123' || password === 'password')) {
+      // Establish dummy student session
+      Astro.cookies.set('mhs_access_token', 'dummy-budi', {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 2 // 2 hours
+      });
+
+      successMessage = 'Student login successful! Redirecting to dashboard...';
+      return Astro.redirect('/dash/mhs');
     } else {
       // 1. Query user with matching credentials in local DB
       const users = await db.select().from(User).where(
@@ -150,7 +162,7 @@ if (mhsSession) {
       client:load 
       mouseRepulsion
       mouseInteraction
-      density={1}
+      density={0.6}
       glowIntensity={0.3}
       saturation={0}
       hueShift={140}

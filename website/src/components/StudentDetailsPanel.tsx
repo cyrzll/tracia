@@ -481,6 +481,51 @@ export function StudentDetailsPanel({
   }, [students]);
 
   const renderLecturerView = () => {
+    // Calibrate Risk Anatomy Breakdown & Dynamic Explanation
+    const gpaRisk = student ? Math.max(5, Math.round((4.0 - student.gpa) * 20)) : 5;
+    const financialRisk = !isHeartHealthy ? 40 : 5;
+    const creditsRisk = student ? Math.max(5, Math.round(Math.max(0, 18 - velocity) * 3)) + (!isHandsHealthy ? 15 : 0) : 5;
+    const attendanceRisk = 5;
+
+    const getModelExplanation = () => {
+      if (!student) return "";
+      if (student.risk_level === 'Low') {
+        return "No immediate actions required. Student maintains metrics above standard thresholds. Keep monitoring credit speed velocities.";
+      }
+
+      const triggers: string[] = [];
+      const recommendations: string[] = [];
+
+      if (!isBrainHealthy) {
+        triggers.push(`lower cumulative GPA (${student.gpa.toFixed(2)})`);
+        recommendations.push("academic tutoring and GPA recovery planning");
+      }
+
+      if (!isHeartHealthy) {
+        triggers.push("unpaid semester tuition billing");
+        recommendations.push("coordinating with the financial department for payment installment options");
+      }
+
+      if (!isFeetHealthy) {
+        triggers.push(`lower credit accumulation velocity (${velocity.toFixed(2)} SKS/semester)`);
+        recommendations.push("advising the student to optimize course load and credit planning");
+      }
+
+      if (!isHandsHealthy) {
+        const failedCount = transcript ? transcript.filter(c => c.nl === 'D' || c.nl === 'E').length : 0;
+        triggers.push(failedCount > 0 ? `presence of failed courses (${failedCount} with D/E grades)` : "presence of failed courses");
+        recommendations.push("prioritizing retaking failed courses to recover GPA");
+      }
+
+      if (triggers.length > 0) {
+        const triggerText = triggers.join(" and ");
+        const recText = recommendations.join(", and ");
+        return `Intervention recommended. Risk factors detected: ${triggerText}. Recommended action: ${recText.charAt(0).toUpperCase() + recText.slice(1)}.`;
+      } else {
+        return `Student's core academic and financial metrics are currently in excellent standing. The ${student.risk_level.toLowerCase()} risk classification may reflect baseline transition statistics or early-semester enrollment patterns (Semester ${student.semester}). Recommended action: normal monitoring and a routine check-in with the faculty advisor to maintain momentum.`;
+      }
+    };
+
     return (
         <div className="space-y-6">
           {!student ? (
@@ -607,13 +652,9 @@ export function StudentDetailsPanel({
                     {/* AI Parameters */}
                     <div className="lg:col-span-2 space-y-4">
                       <div>
-                        <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Model Explanation & Advice</span>
-                        <p className="text-xs text-zinc-350 leading-relaxed mt-2 font-medium">
-                          {student.risk_level === 'Low' ? (
-                            "No immediate actions required. Student maintains metrics above standard thresholds. Keep monitoring credit speed velocities."
-                          ) : (
-                            "Intervention needed. High drop-out probabilities are triggered by unpaid billing tagihan semester and lower accumulative credit levels. Recommended action: issue warning notification and consult with faculty advisor."
-                          )}
+                        <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Model Explanation & Advice</span>
+                        <p className="text-xs text-white leading-relaxed mt-2 font-medium">
+                          {getModelExplanation()}
                         </p>
                       </div>
 
@@ -636,7 +677,7 @@ export function StudentDetailsPanel({
                           data={{
                             labels: ['GPA', 'Financial', 'Credits', 'Attendance'],
                             datasets: [{
-                              data: [isBrainHealthy ? 10 : 40, isHeartHealthy ? 10 : 30, isHandsHealthy ? 10 : 20, isFeetHealthy ? 10 : 10],
+                              data: [gpaRisk, financialRisk, creditsRisk, attendanceRisk],
                               backgroundColor: ['#818cf8', '#f472b6', '#38bdf8', '#34d399'],
                               borderColor: '#000', borderWidth: 1
                             }]
@@ -665,7 +706,7 @@ export function StudentDetailsPanel({
                               <span className="text-zinc-400">Semester Payment</span>
                               <Badge className="bg-zinc-800 text-zinc-300 border border-zinc-700 uppercase text-[9px]">{billing.status}</Badge>
                             </div>
-                            <div className="text-lg font-black font-mono text-white">{formatRupiah(billing.totalTagih)}</div>
+                            <div className="text-lg font-black font-mono text-white">{formatRupiah(billing.total_tagih)}</div>
                             <p className="text-[10px] text-zinc-500 leading-relaxed">{billing.informasi}</p>
                           </div>
                         ) : (
@@ -1650,15 +1691,15 @@ export function StudentDetailsPanel({
                   <Button 
                     type="submit" 
                     disabled={isSendingEmail}
-                    className="px-4 py-2 bg-white text-black hover:bg-zinc-200 text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 h-9"
+                    className="px-4 py-2 bg-white !text-black hover:bg-zinc-200 text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 h-9"
                   >
                     {isSendingEmail ? (
                       <>
-                        <span>Sending...</span>
+                        <span className="!text-black">Sending...</span>
                         <span className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
                       </>
                     ) : (
-                      <span>Send Outreach Email</span>
+                      <span className="!text-black">Send Outreach Email</span>
                     )}
                   </Button>
                 </div>

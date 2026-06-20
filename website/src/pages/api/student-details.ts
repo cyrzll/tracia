@@ -119,7 +119,9 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       nl: row.nilai
     }));
 
-    const totalSks = transcriptData.reduce((sum, item) => sum + Number(item.sks), 0);
+    const totalSks = transcriptData.length > 0
+      ? transcriptData.reduce((sum, item) => sum + Number(item.sks), 0)
+      : (selectedStudent.sks || 0);
     const gradeCounts = new Map<string, number>();
     transcriptData.forEach(item => {
       gradeCounts.set(item.nl, (gradeCounts.get(item.nl) || 0) + 1);
@@ -136,7 +138,10 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     };
 
     // 6. Calculate ML Features
-    const activeSemester = (currentKrsData ? 1 : 0) + pastKrsData.length;
+    const activeSemester = Math.max(
+      (currentKrsData ? 1 : 0) + pastKrsData.length,
+      selectedStudent.semester || 1
+    );
     const courseGrades = new Map();
     transcriptData.forEach((c) => {
       courseGrades.set(c.kdmk, c.nl);

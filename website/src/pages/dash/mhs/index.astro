@@ -32,6 +32,12 @@ let khsHeaderData: KhsHeader | null = null;
 let transcriptData: CourseGrade[] | null = null;
 let predictionData: { risk_level: string; dropout_risk_probability: number } | null = null;
 let fetchError = '';
+let allDbStudents: any[] = [];
+try {
+  allDbStudents = await db.select().from(Mhs);
+} catch (e) {
+  console.error("Failed to load all students from DB:", e);
+}
 
 // Health state variables for visual metaphor
 let isBrainHealthy = true;
@@ -76,296 +82,458 @@ const formatRupiah = (value: number) => {
 };
 
 try {
-  const response = await fetch('https://api.dinus.ac.id/api/v1/siadin/get-mini-profile', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${mhsToken.value}`,
-      'Accept': 'application/json'
-    }
-  });
+  if (mhsToken && mhsToken.value === 'dummy-budi') {
+    // 3a. Bypass SIADIN and fetch Budi Santoso's data directly from local database
+    const nimStr = 'F11.2024.99999';
+    const dbStudents = await db.select().from(Mhs).where(eq(Mhs.nim, nimStr)).limit(1);
+    if (dbStudents.length > 0) {
+      const selectedStudent = dbStudents[0];
+      studentData = {
+        nim: selectedStudent.nim,
+        nama: selectedStudent.nama,
+        email_mhs: selectedStudent.email,
+        gender: selectedStudent.gender,
+        foto: selectedStudent.foto
+      };
 
-  if (response.ok) {
-    const result = await response.json();
-    if (result && result.code === 200 && result.data) {
-      studentData = result.data;
+      const [dbKrs, dbTranscript, dbBilling] = await Promise.all([
+        db.select().from(MhsKrs).where(eq(MhsKrs.nim, nimStr)),
+        db.select().from(MhsTranscript).where(eq(MhsTranscript.nim, nimStr)),
+        db.select().from(MhsBilling).where(eq(MhsBilling.nim, nimStr)).limit(1)
+      ]);
 
-      // Fetch KRS, Billing, and KHS academic data in parallel
-      try {
-        const [currentKrsRes, pastKrsRes, billingRes, khsHeaderRes, transcriptRes] = await Promise.all([
-          fetch('https://api.dinus.ac.id/api/v1/siadin/get-krs', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${mhsToken.value}`,
-              'Accept': 'application/json'
-            }
-          }),
-          fetch('https://api.dinus.ac.id/api/v1/siadin/get-krs-lalu', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${mhsToken.value}`,
-              'Accept': 'application/json'
-            }
-          }),
-          fetch('https://api.dinus.ac.id/api/v1/siadin/get-tagihan', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${mhsToken.value}`,
-              'Accept': 'application/json'
-            }
-          }),
-          fetch('https://api.dinus.ac.id/api/v1/siadin/header-khs', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${mhsToken.value}`,
-              'Accept': 'application/json'
-            }
-          }),
-          fetch('https://api.dinus.ac.id/api/v1/siadin/get-transkrip', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${mhsToken.value}`,
-              'Accept': 'application/json'
-            }
-          })
-        ]);
-
-        if (currentKrsRes.ok) {
-          const currentKrsJson = await currentKrsRes.json();
-          if (currentKrsJson && currentKrsJson.code === 200 && currentKrsJson.data) {
-            currentKrsData = currentKrsJson.data;
-          }
+      // Reconstruct KRS structure
+      const krsMap = new Map<string, any[]>();
+      dbKrs.forEach(row => {
+        if (!krsMap.has(row.ta)) {
+          krsMap.set(row.ta, []);
         }
+        krsMap.get(row.ta)!.push({
+          kdmk: row.kdmk,
+          nmmk: row.nmmk,
+          klpk: row.klpk,
+          sks: row.sks,
+          sts: row.status
+        });
+      });
 
-        if (pastKrsRes.ok) {
-          const pastKrsJson = await pastKrsRes.json();
-          if (pastKrsJson && pastKrsJson.code === 200 && pastKrsJson.data) {
-            pastKrsData = pastKrsJson.data;
-          }
+      pastKrsData = [];
+      const sortedTas = Array.from(krsMap.keys()).sort();
+      sortedTas.forEach((ta, idx) => {
+        const isLast = idx === sortedTas.length - 1;
+        const semKrs = {
+          ta: ta,
+          kode_ta: ta,
+          krs: krsMap.get(ta)!
+        };
+        if (isLast) {
+          currentKrsData = semKrs;
+        } else {
+          pastKrsData!.push(semKrs);
         }
+      });
 
-        if (billingRes.ok) {
-          const billingJson = await billingRes.json();
-          if (billingJson && billingJson.code === 200 && billingJson.data) {
-            billingData = billingJson.data;
-          }
-        }
+      // Reconstruct Transcript & KHS header format
+      transcriptData = dbTranscript.map(row => ({
+        kdmk: row.kdmk,
+        nmmk: row.nmmk,
+        sks: row.sks,
+        nl: row.nilai
+      }));
 
-        if (khsHeaderRes.ok) {
-          const khsHeaderJson = await khsHeaderRes.json();
-          if (khsHeaderJson && khsHeaderJson.code === 200 && khsHeaderJson.data) {
-            khsHeaderData = khsHeaderJson.data;
-          }
-        }
+      const totalSks = transcriptData.length > 0
+        ? transcriptData.reduce((sum, item) => sum + Number(item.sks), 0)
+        : (selectedStudent.sks || 0);
+      const gradeCounts = new Map<string, number>();
+      transcriptData.forEach(item => {
+        gradeCounts.set(item.nl, (gradeCounts.get(item.nl) || 0) + 1);
+      });
+      const total_nilai = Array.from(gradeCounts.entries()).map(([nilai, jumlah]) => ({
+        nilai,
+        jumlah
+      }));
 
-        if (transcriptRes.ok) {
-          const transcriptJson = await transcriptRes.json();
-          if (transcriptJson && transcriptJson.code === 200 && transcriptJson.data) {
-            transcriptData = transcriptJson.data;
-          }
-        }
+      khsHeaderData = {
+        total_sks: totalSks,
+        ipk: selectedStudent.gpa,
+        total_nilai
+      };
 
-        // Fetch prediction from ML API
-        if (khsHeaderData && transcriptData) {
-          try {
-            const activeSemester = (currentKrsData ? 1 : 0) + (pastKrsData ? pastKrsData.length : 0);
+      // Calculate ML features
+      const activeSemester = Math.max(
+        (currentKrsData ? 1 : 0) + (pastKrsData ? pastKrsData.length : 0),
+        selectedStudent.semester || 1
+      );
+      const courseGrades = new Map();
+      transcriptData.forEach((c: any) => {
+        courseGrades.set(c.kdmk, c.nl);
+      });
 
-            const courseGrades = new Map();
-            transcriptData.forEach((c: CourseGrade) => {
-              courseGrades.set(c.kdmk, c.nl);
-            });
-
-            const semesterGpas: number[] = [];
-            if (pastKrsData) {
-              const sortedPast = [...pastKrsData].sort((a, b) => a.kode_ta.localeCompare(b.kode_ta));
-              sortedPast.forEach(sem => {
-                let totalSks = 0;
-                let totalPoints = 0;
-                sem.krs.forEach((c: Course) => {
-                  const grade = courseGrades.get(c.kdmk);
-                  if (grade) {
-                    totalSks += c.sks;
-                    totalPoints += getGradeWeight(grade) * c.sks;
-                  }
-                });
-                if (totalSks > 0) {
-                  semesterGpas.push(totalPoints / totalSks);
-                }
-              });
+      const semesterGpas: number[] = [];
+      if (pastKrsData) {
+        const sortedPast = [...pastKrsData].sort((a, b) => a.kode_ta.localeCompare(b.kode_ta));
+        sortedPast.forEach(sem => {
+          let totalSksSem = 0;
+          let totalPoints = 0;
+          sem.krs.forEach((c: any) => {
+            const grade = courseGrades.get(c.kdmk);
+            if (grade) {
+              totalSksSem += c.sks;
+              totalPoints += getGradeWeight(grade) * c.sks;
             }
-
-            let gpaTrend = 0.0;
-            if (semesterGpas.length >= 2) {
-              gpaTrend = semesterGpas[semesterGpas.length - 1] - semesterGpas[semesterGpas.length - 2];
-            }
-
-            const scores = transcriptData.map(c => gradeToScore(c.nl));
-            const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 75;
-            const highestScore = scores.length > 0 ? Math.max(...scores) : 75;
-            const lowestScore = scores.length > 0 ? Math.min(...scores) : 75;
-
-            let scoreStd = 0.0;
-            if (scores.length > 1) {
-              const mean = averageScore;
-              const variance = scores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scores.length;
-              scoreStd = Math.sqrt(variance);
-            }
-
-            const failedCourses = transcriptData.filter((c: CourseGrade) => c.nl === 'D' || c.nl === 'E').length;
-            const totalCredits = khsHeaderData.total_sks;
-            const paymentStatus = billingData && billingData.status.includes("TERBAYAR") ? "Paid" : "Unpaid";
-            velocity = activeSemester > 1 ? totalCredits / (activeSemester - 1) : totalCredits;
-
-            // Set visual metaphor health indicators
-            isBrainHealthy = khsHeaderData.ipk >= 3.0;
-            isHeartHealthy = paymentStatus === "Paid";
-            isHandsHealthy = failedCourses === 0;
-            isFeetHealthy = velocity >= 12;
-
-            const payload = {
-              "Semester": activeSemester,
-              "Current_GPA": khsHeaderData.ipk,
-              "GPA_Trend": Number(gpaTrend.toFixed(4)),
-              "Attendance_Rate": 0.95,
-              "Credit_Accumulation_Velocity": Number(velocity.toFixed(2)),
-              "Failed_Course_Count": failedCourses,
-              "Total_Credits_Completed": totalCredits,
-              "Payment_Status": paymentStatus,
-              "Average_Final_Score": Number(averageScore.toFixed(2)),
-              "Highest_Final_Score": highestScore,
-              "Lowest_Final_Score": lowestScore,
-              "Final_Score_Std": Number(scoreStd.toFixed(4))
-            };
-
-            const predictRes = await fetch("http://127.0.0.1:4322/predict", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(payload)
-            });
-
-            if (predictRes.ok) {
-              const pred = await predictRes.json();
-              predictionData = pred;
-
-              // Save or update student in Astro DB
-              try {
-                const nimStr = studentData.nim;
-                const mhsValues = {
-                  nim: nimStr,
-                  nama: studentData.nama,
-                  email: studentData.email_mhs,
-                  gender: studentData.gender,
-                  foto: studentData.foto,
-                  gpa: khsHeaderData ? khsHeaderData.ipk : 0.0,
-                  sks: khsHeaderData ? khsHeaderData.total_sks : 0,
-                  semester: activeSemester,
-                  risk_probability: pred.dropout_risk_probability,
-                  risk_level: pred.risk_level,
-                  updatedAt: new Date()
-                };
-
-                const existing = await db.select().from(Mhs).where(eq(Mhs.nim, nimStr)).limit(1);
-                if (existing.length > 0) {
-                  await db.update(Mhs).set(mhsValues).where(eq(Mhs.nim, nimStr));
-                } else {
-                  await db.insert(Mhs).values(mhsValues);
-                }
-
-                // 2. Clear and Save MhsKrs
-                await db.delete(MhsKrs).where(eq(MhsKrs.nim, nimStr));
-                const krsRows: (typeof MhsKrs.$inferInsert)[] = [];
-                const currentKrs = currentKrsData;
-                if (currentKrs && currentKrs.krs) {
-                  currentKrs.krs.forEach((course: any) => {
-                    krsRows.push({
-                      nim: nimStr,
-                      ta: currentKrs.ta,
-                      kdmk: course.kdmk,
-                      nmmk: course.nmmk,
-                      klpk: course.klpk,
-                      sks: Number(course.sks),
-                      status: course.sts,
-                    });
-                  });
-                }
-                if (pastKrsData) {
-                  pastKrsData.forEach((sem: any) => {
-                    if (sem.krs) {
-                      sem.krs.forEach((course: any) => {
-                        krsRows.push({
-                          nim: nimStr,
-                          ta: sem.ta,
-                          kdmk: course.kdmk,
-                          nmmk: course.nmmk,
-                          klpk: course.klpk,
-                          sks: Number(course.sks),
-                          status: course.sts || 'LALU',
-                        });
-                      });
-                    }
-                  });
-                }
-                if (krsRows.length > 0) {
-                  await db.insert(MhsKrs).values(krsRows);
-                }
-
-                // 3. Clear and Save MhsTranscript
-                await db.delete(MhsTranscript).where(eq(MhsTranscript.nim, nimStr));
-                const transcriptRows: (typeof MhsTranscript.$inferInsert)[] = [];
-                if (transcriptData) {
-                  transcriptData.forEach((course: any) => {
-                    transcriptRows.push({
-                      nim: nimStr,
-                      kdmk: course.kdmk,
-                      nmmk: course.nmmk,
-                      sks: Number(course.sks),
-                      nilai: course.nl,
-                    });
-                  });
-                }
-                if (transcriptRows.length > 0) {
-                  await db.insert(MhsTranscript).values(transcriptRows);
-                }
-
-                // 4. Upsert MhsBilling
-                if (billingData) {
-                  const billingValues = {
-                    nim: nimStr,
-                    ta: billingData.tahun_ajaran,
-                    status: billingData.status,
-                    totalTagih: Number(billingData.total_tagih),
-                    informasi: billingData.informasi,
-                    via: billingData.via || '',
-                    tanggal: billingData.tanggal || '',
-                  };
-                  const existingBilling = await db.select().from(MhsBilling).where(eq(MhsBilling.nim, nimStr)).limit(1);
-                  if (existingBilling.length > 0) {
-                    await db.update(MhsBilling).set(billingValues).where(eq(MhsBilling.nim, nimStr));
-                  } else {
-                    await db.insert(MhsBilling).values(billingValues);
-                  }
-                }
-              } catch (dbErr) {
-                console.error('Error saving student details to Astro DB:', dbErr);
-              }
-            }
-
-
-          } catch (predictErr) {
-            console.error('Prediction fetch error:', predictErr);
+          });
+          if (totalSksSem > 0) {
+            semesterGpas.push(totalPoints / totalSksSem);
           }
-        }
-      } catch (krsErr) {
-        console.error('KRS/Billing/KHS fetch error:', krsErr);
+        });
       }
+
+      let gpaTrend = 0.0;
+      if (semesterGpas.length >= 2) {
+        gpaTrend = semesterGpas[semesterGpas.length - 1] - semesterGpas[semesterGpas.length - 2];
+      }
+
+      const scores = transcriptData.map(c => gradeToScore(c.nl));
+      const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 75;
+      const highestScore = scores.length > 0 ? Math.max(...scores) : 75;
+      const lowestScore = scores.length > 0 ? Math.min(...scores) : 75;
+
+      let scoreStd = 0.0;
+      if (scores.length > 1) {
+        const mean = averageScore;
+        const variance = scores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scores.length;
+        scoreStd = Math.sqrt(variance);
+      }
+
+      const failedCourses = transcriptData.filter((c: any) => c.nl === 'D' || c.nl === 'E').length;
+      velocity = activeSemester > 1 ? totalSks / (activeSemester - 1) : totalSks;
+
+      // Reconstruct Billing format
+      if (dbBilling.length > 0) {
+        const b = dbBilling[0];
+        billingData = {
+          status: b.status,
+          total_tagih: b.totalTagih,
+          informasi: b.informasi,
+          tahun_ajaran: b.ta,
+          status_pembayaran: b.status.includes("TERBAYAR") ? "PAID" : "UNPAID",
+          via: b.via,
+          tanggal: b.tanggal,
+          SKS_sekarang: 0,
+          SPP_sekarang: 0,
+          GDG_sekarang: 0,
+          MOD_sekarang: 0,
+          BK_sekarang: 0,
+          POLI_sekarang: 0
+        };
+      }
+
+      const paymentStatus = billingData && billingData.status_pembayaran === "PAID" ? "Paid" : "Unpaid";
+
+      // Set visual metaphor health indicators
+      isBrainHealthy = khsHeaderData.ipk >= 3.0;
+      isHeartHealthy = paymentStatus === "Paid";
+      isHandsHealthy = failedCourses === 0;
+      isFeetHealthy = velocity >= 12;
+
+      predictionData = {
+        risk_level: selectedStudent.risk_level,
+        dropout_risk_probability: selectedStudent.risk_probability
+      };
     } else {
-      fetchError = result.message || 'Failed to load student profile.';
+      fetchError = 'Dummy student Budi Santoso not found in local database.';
     }
   } else {
-    // If token is invalid or expired, redirect to login
-    Astro.cookies.delete('mhs_access_token', { path: '/' });
-    return Astro.redirect('/login');
+    // 3b. Fetch SIADIN Mini Profile, KRS, Billing, & Transcript Data via SIADIN API
+    const response = await fetch('https://api.dinus.ac.id/api/v1/siadin/get-mini-profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${mhsToken.value}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.code === 200 && result.data) {
+        studentData = result.data;
+
+        // Fetch KRS, Billing, and KHS academic data in parallel
+        try {
+          const [currentKrsRes, pastKrsRes, billingRes, khsHeaderRes, transcriptRes] = await Promise.all([
+            fetch('https://api.dinus.ac.id/api/v1/siadin/get-krs', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${mhsToken.value}`,
+                'Accept': 'application/json'
+              }
+            }),
+            fetch('https://api.dinus.ac.id/api/v1/siadin/get-krs-lalu', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${mhsToken.value}`,
+                'Accept': 'application/json'
+              }
+            }),
+            fetch('https://api.dinus.ac.id/api/v1/siadin/get-tagihan', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${mhsToken.value}`,
+                'Accept': 'application/json'
+              }
+            }),
+            fetch('https://api.dinus.ac.id/api/v1/siadin/header-khs', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${mhsToken.value}`,
+                'Accept': 'application/json'
+              }
+            }),
+            fetch('https://api.dinus.ac.id/api/v1/siadin/get-transkrip', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${mhsToken.value}`,
+                'Accept': 'application/json'
+              }
+            })
+          ]);
+
+          if (currentKrsRes.ok) {
+            const currentKrsJson = await currentKrsRes.json();
+            if (currentKrsJson && currentKrsJson.code === 200 && currentKrsJson.data) {
+              currentKrsData = currentKrsJson.data;
+            }
+          }
+
+          if (pastKrsRes.ok) {
+            const pastKrsJson = await pastKrsRes.json();
+            if (pastKrsJson && pastKrsJson.code === 200 && pastKrsJson.data) {
+              pastKrsData = pastKrsJson.data;
+            }
+          }
+
+          if (billingRes.ok) {
+            const billingJson = await billingRes.json();
+            if (billingJson && billingJson.code === 200 && billingJson.data) {
+              billingData = billingJson.data;
+            }
+          }
+
+          if (khsHeaderRes.ok) {
+            const khsHeaderJson = await khsHeaderRes.json();
+            if (khsHeaderJson && khsHeaderJson.code === 200 && khsHeaderJson.data) {
+              khsHeaderData = khsHeaderJson.data;
+            }
+          }
+
+          if (transcriptRes.ok) {
+            const transcriptJson = await transcriptRes.json();
+            if (transcriptJson && transcriptJson.code === 200 && transcriptJson.data) {
+              transcriptData = transcriptJson.data;
+            }
+          }
+
+          // Fetch prediction from ML API
+          if (khsHeaderData && transcriptData) {
+            try {
+              const activeSemester = (currentKrsData ? 1 : 0) + (pastKrsData ? pastKrsData.length : 0);
+
+              const courseGrades = new Map();
+              transcriptData.forEach((c: CourseGrade) => {
+                courseGrades.set(c.kdmk, c.nl);
+              });
+
+              const semesterGpas: number[] = [];
+              if (pastKrsData) {
+                const sortedPast = [...pastKrsData].sort((a, b) => a.kode_ta.localeCompare(b.kode_ta));
+                sortedPast.forEach(sem => {
+                  let totalSks = 0;
+                  let totalPoints = 0;
+                  sem.krs.forEach((c: Course) => {
+                    const grade = courseGrades.get(c.kdmk);
+                    if (grade) {
+                      totalSks += c.sks;
+                      totalPoints += getGradeWeight(grade) * c.sks;
+                    }
+                  });
+                  if (totalSks > 0) {
+                    semesterGpas.push(totalPoints / totalSks);
+                  }
+                });
+              }
+
+              let gpaTrend = 0.0;
+              if (semesterGpas.length >= 2) {
+                gpaTrend = semesterGpas[semesterGpas.length - 1] - semesterGpas[semesterGpas.length - 2];
+              }
+
+              const scores = transcriptData.map(c => gradeToScore(c.nl));
+              const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 75;
+              const highestScore = scores.length > 0 ? Math.max(...scores) : 75;
+              const lowestScore = scores.length > 0 ? Math.min(...scores) : 75;
+
+              let scoreStd = 0.0;
+              if (scores.length > 1) {
+                const mean = averageScore;
+                const variance = scores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scores.length;
+                scoreStd = Math.sqrt(variance);
+              }
+
+              const failedCourses = transcriptData.filter((c: CourseGrade) => c.nl === 'D' || c.nl === 'E').length;
+              const totalCredits = khsHeaderData.total_sks;
+              const paymentStatus = billingData && billingData.status.includes("TERBAYAR") ? "Paid" : "Unpaid";
+              velocity = activeSemester > 1 ? totalCredits / (activeSemester - 1) : totalCredits;
+
+              // Set visual metaphor health indicators
+              isBrainHealthy = khsHeaderData.ipk >= 3.0;
+              isHeartHealthy = paymentStatus === "Paid";
+              isHandsHealthy = failedCourses === 0;
+              isFeetHealthy = velocity >= 12;
+
+              const payload = {
+                "Semester": activeSemester,
+                "Current_GPA": khsHeaderData.ipk,
+                "GPA_Trend": Number(gpaTrend.toFixed(4)),
+                "Attendance_Rate": 0.95,
+                "Credit_Accumulation_Velocity": Number(velocity.toFixed(2)),
+                "Failed_Course_Count": failedCourses,
+                "Total_Credits_Completed": totalCredits,
+                "Payment_Status": paymentStatus,
+                "Average_Final_Score": Number(averageScore.toFixed(2)),
+                "Highest_Final_Score": highestScore,
+                "Lowest_Final_Score": lowestScore,
+                "Final_Score_Std": Number(scoreStd.toFixed(4))
+              };
+
+              const predictRes = await fetch("http://127.0.0.1:4322/predict", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+              });
+
+              if (predictRes.ok) {
+                const pred = await predictRes.json();
+                predictionData = pred;
+
+                // Save or update student in Astro DB
+                try {
+                  const nimStr = studentData.nim;
+                  const mhsValues = {
+                    nim: nimStr,
+                    nama: studentData.nama,
+                    email: studentData.email_mhs,
+                    gender: studentData.gender,
+                    foto: studentData.foto,
+                    gpa: khsHeaderData ? khsHeaderData.ipk : 0.0,
+                    sks: khsHeaderData ? khsHeaderData.total_sks : 0,
+                    semester: activeSemester,
+                    risk_probability: pred.dropout_risk_probability,
+                    risk_level: pred.risk_level,
+                    updatedAt: new Date()
+                  };
+
+                  const existing = await db.select().from(Mhs).where(eq(Mhs.nim, nimStr)).limit(1);
+                  if (existing.length > 0) {
+                    await db.update(Mhs).set(mhsValues).where(eq(Mhs.nim, nimStr));
+                  } else {
+                    await db.insert(Mhs).values(mhsValues);
+                  }
+
+                  // 2. Clear and Save MhsKrs
+                  await db.delete(MhsKrs).where(eq(MhsKrs.nim, nimStr));
+                  const krsRows: (typeof MhsKrs.$inferInsert)[] = [];
+                  const currentKrs = currentKrsData;
+                  if (currentKrs && currentKrs.krs) {
+                    currentKrs.krs.forEach((course: any) => {
+                      krsRows.push({
+                        nim: nimStr,
+                        ta: currentKrs.ta,
+                        kdmk: course.kdmk,
+                        nmmk: course.nmmk,
+                        klpk: course.klpk,
+                        sks: Number(course.sks),
+                        status: course.sts,
+                      });
+                    });
+                  }
+                  if (pastKrsData) {
+                    pastKrsData.forEach((sem: any) => {
+                      if (sem.krs) {
+                        sem.krs.forEach((course: any) => {
+                          krsRows.push({
+                            nim: nimStr,
+                            ta: sem.ta,
+                            kdmk: course.kdmk,
+                            nmmk: course.nmmk,
+                            klpk: course.klpk,
+                            sks: Number(course.sks),
+                            status: course.sts || 'LALU',
+                          });
+                        });
+                      }
+                    });
+                  }
+                  if (krsRows.length > 0) {
+                    await db.insert(krsRows);
+                  }
+
+                  // 3. Clear and Save MhsTranscript
+                  await db.delete(MhsTranscript).where(eq(MhsTranscript.nim, nimStr));
+                  const transcriptRows: (typeof MhsTranscript.$inferInsert)[] = [];
+                  if (transcriptData) {
+                    transcriptData.forEach((course: any) => {
+                      transcriptRows.push({
+                        nim: nimStr,
+                        kdmk: course.kdmk,
+                        nmmk: course.nmmk,
+                        sks: Number(course.sks),
+                        nilai: course.nilai,
+                      });
+                    });
+                  }
+                  if (transcriptRows.length > 0) {
+                    await db.insert(transcriptRows);
+                  }
+
+                  // 4. Upsert MhsBilling
+                  if (billingData) {
+                    const billingValues = {
+                      nim: nimStr,
+                      ta: billingData.tahun_ajaran,
+                      status: billingData.status,
+                      totalTagih: Number(billingData.total_tagih),
+                      informasi: billingData.informasi,
+                      via: billingData.via || '',
+                      tanggal: billingData.tanggal || '',
+                    };
+                    const existingBilling = await db.select().from(MhsBilling).where(eq(MhsBilling.nim, nimStr)).limit(1);
+                    if (existingBilling.length > 0) {
+                      await db.update(MhsBilling).set(billingValues).where(eq(MhsBilling.nim, nimStr));
+                    } else {
+                      await db.insert(MhsBilling).values(billingValues);
+                    }
+                  }
+                } catch (dbErr) {
+                  console.error('Error saving student details to Astro DB:', dbErr);
+                }
+              }
+            } catch (predictErr) {
+              console.error('Prediction fetch error:', predictErr);
+            }
+          }
+        } catch (krsErr) {
+          console.error('KRS/Billing/KHS fetch error:', krsErr);
+        }
+      } else {
+        fetchError = result.message || 'Failed to load student profile.';
+      }
+    } else {
+      // If token is invalid or expired, redirect to login
+      Astro.cookies.delete('mhs_access_token', { path: '/' });
+      return Astro.redirect('/login');
+    }
   }
 } catch (error) {
   fetchError = 'Connection to SIADIN server lost.';
@@ -397,6 +565,25 @@ if (studentData) {
   <style is:global>
     html, body {
       background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+    
+    /* Force high contrast white text for all text elements */
+    html, body, p, span, h1, h2, h3, h4, h5, h6, label, li, td, th, dt, dd, select, input, textarea {
+      color: #ffffff !important;
+    }
+    
+    /* Override low-contrast text colors */
+    .text-zinc-500, 
+    .text-zinc-400, 
+    .text-zinc-300, 
+    .text-zinc-350, 
+    .text-zinc-550, 
+    .text-zinc-405, 
+    .text-zinc-600,
+    .text-gray-500, 
+    .text-gray-400 {
+      color: #ffffff !important;
     }
   </style>
 
@@ -453,7 +640,7 @@ if (studentData) {
     <!-- Main Content Area -->
     <main class="max-w-full w-full mx-auto px-4 sm:px-8 lg:px-12 py-10">
       <!-- Welcome Header -->
-      <div class="mb-8 border-b border-zinc-800 pb-6">
+      <div class="sticky top-16 z-40 bg-black/85 backdrop-blur-md mb-8 border-b border-zinc-800 pb-6 pt-4">
         <h1 class="text-2xl font-bold text-white tracking-tight">STUDENT PORTAL</h1>
         <p class="text-xs text-zinc-500 mt-1">Integrated Academic Monitoring System SIADIN Dian Nuswantoro University</p>
       </div>
@@ -483,6 +670,7 @@ if (studentData) {
           isHandsHealthy={isHandsHealthy}
           isFeetHealthy={isFeetHealthy}
           velocity={velocity}
+          allStudents={allDbStudents}
           client:load
         />
       )}
