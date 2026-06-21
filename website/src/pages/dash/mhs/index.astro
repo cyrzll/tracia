@@ -543,6 +543,18 @@ try {
 let studentInfo: Student | null = null;
 if (studentData) {
   const activeSemester = (currentKrsData ? 1 : 0) + (pastKrsData ? pastKrsData.length : 0);
+  
+  // Query DB to retrieve stored gamification fields
+  let dbStudentRow: any = null;
+  try {
+    const dbRows = await db.select().from(Mhs).where(eq(Mhs.nim, studentData.nim)).limit(1);
+    if (dbRows.length > 0) {
+      dbStudentRow = dbRows[0];
+    }
+  } catch (err) {
+    console.error("Failed to load gamification info from DB:", err);
+  }
+
   studentInfo = {
     nim: studentData.nim,
     nama: studentData.nama,
@@ -553,7 +565,10 @@ if (studentData) {
     sks: khsHeaderData ? khsHeaderData.total_sks : 0,
     semester: activeSemester,
     risk_probability: predictionData ? predictionData.dropout_risk_probability : 0.0,
-    risk_level: predictionData ? predictionData.risk_level : 'Low'
+    risk_level: predictionData ? predictionData.risk_level : 'Low',
+    xp: dbStudentRow?.xp ?? 0,
+    streak: dbStudentRow?.streak ?? 0,
+    completedQuests: dbStudentRow?.completedQuests ?? ''
   };
 }
 ---

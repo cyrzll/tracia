@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { verifyToken } from '../../utils/jwt';
+import { validateStudentSession } from '../../utils/auth';
 
 // Helper to decode HTML entities
 function decodeHtmlEntities(str: string): string {
@@ -23,11 +24,9 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     
     let isAuthenticated = false;
     if (mhsToken) {
-      if (mhsToken.value === 'dummy-budi') {
+      const studentSession = await validateStudentSession(cookies);
+      if (studentSession.isValid) {
         isAuthenticated = true;
-      } else {
-        const payload = await verifyToken(mhsToken.value);
-        if (payload) isAuthenticated = true;
       }
     }
     if (!isAuthenticated && adminToken) {

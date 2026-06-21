@@ -2,13 +2,13 @@ import type { APIRoute } from 'astro';
 import { db } from '../../lib/db';
 import { MhsChat } from '../../lib/schema';
 import { eq, asc } from 'drizzle-orm';
-import { validateAdminSession } from '../../utils/auth';
+import { validateAdminSession, validateStudentSession } from '../../utils/auth';
 
 // Helper to validate student session cookie or admin/lecturer session
 async function validateSession(cookies: any, queryNim: string) {
   // Check student token
-  const mhsToken = cookies.get('mhs_access_token');
-  if (mhsToken && mhsToken.value === 'dummy-budi' && queryNim === 'F11.2024.99999') {
+  const studentSession = await validateStudentSession(cookies);
+  if (studentSession.isValid && studentSession.nim === queryNim) {
     return true;
   }
   // Check admin session

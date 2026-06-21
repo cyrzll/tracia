@@ -55,3 +55,40 @@ export function clearAdminSession(cookies: AstroCookies) {
   cookies.delete('admin_access_token', { path: '/' });
   cookies.delete('admin_refresh_token', { path: '/' });
 }
+
+/**
+ * Validates the student session.
+ * For dummy accounts, validates 'dummy-budi' locally.
+ * For real accounts, queries Dian Nuswantoro University's SIADIN mini profile endpoint.
+ */
+export async function validateStudentSession(cookies: AstroCookies): Promise<{ isValid: boolean; nim: string | null }> {
+  const mhsToken = cookies.get('mhs_access_token');
+  if (!mhsToken) {
+    return { isValid: false, nim: null };
+  }
+
+  if (mhsToken.value === 'dummy-budi') {
+    return { isValid: true, nim: 'F11.2024.99999' };
+  }
+
+  try {
+    const response = await fetch('https://api.dinus.ac.id/api/v1/siadin/get-mini-profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${mhsToken.value}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.code === 200 && result.data && result.data.nim) {
+        return { isValid: true, nim: result.data.nim };
+      }
+    }
+  } catch (error) {
+    console.error('Error validating student session with SIADIN:', error);
+  }
+
+  return { isValid: false, nim: null };
+}

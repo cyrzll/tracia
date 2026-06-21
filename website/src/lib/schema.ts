@@ -22,6 +22,9 @@ export const Mhs = mysqlTable('Mhs', {
   semester: int('semester').notNull(),
   risk_probability: double('risk_probability').notNull(),
   risk_level: varchar('risk_level', { length: 50 }).notNull(),
+  xp: int('xp').default(0).notNull(),
+  streak: int('streak').default(0).notNull(),
+  completedQuests: text('completed_quests'),
   updatedAt: datetime('updatedAt').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

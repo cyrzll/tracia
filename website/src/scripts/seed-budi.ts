@@ -25,7 +25,10 @@ async function seed() {
       sks: 25,
       semester: 3,
       risk_probability: 0.94,
-      risk_level: 'High'
+      risk_level: 'High',
+      xp: 300,
+      streak: 7,
+      completedQuests: 'q-1,q-2,q-3,q-4'
     });
 
     // 3. Insert KRS (Current Semester)

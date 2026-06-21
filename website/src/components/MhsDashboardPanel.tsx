@@ -166,10 +166,22 @@ export function MhsDashboardPanel({
 
   // State linked to LocalStorage for persistence
   const [bookmarks, setBookmarks] = useLocalStorage<string[]>("mhs_bookmarks", []);
-  const [xp, setXp] = useLocalStorage<number>("mhs_xp", 120);
-  const [streak, setStreak] = useLocalStorage<number>("mhs_streak", 3);
-  const [completedQuests, setCompletedQuests] = useLocalStorage<string[]>("mhs_completed_quests", []);
   const [recoveryChecklist, setRecoveryChecklist] = useLocalStorage<string[]>("mhs_recovery_checklist", []);
+
+  // Gamification state synchronized with the database
+  const [xp, setXp] = React.useState<number>(student.xp ?? 0);
+  const [streak, setStreak] = React.useState<number>(student.streak ?? 0);
+  const [completedQuests, setCompletedQuests] = React.useState<string[]>(() => {
+    if (!student.completedQuests) return [];
+    return student.completedQuests.split(',').filter(Boolean);
+  });
+
+  // Sync state if student details reload/change
+  React.useEffect(() => {
+    setXp(student.xp ?? 0);
+    setStreak(student.streak ?? 0);
+    setCompletedQuests(student.completedQuests ? student.completedQuests.split(',').filter(Boolean) : []);
+  }, [student.nim, student.xp, student.streak, student.completedQuests]);
   const [messages, setMessages] = React.useState<Array<{ sender: 'ai' | 'user' | 'lecturer'; text: string; time: string }>>([]);
   const [isChatLoading, setIsChatLoading] = React.useState(true);
   const [inputMsg, setInputMsg] = React.useState("");
@@ -294,17 +306,40 @@ export function MhsDashboardPanel({
   const level = Math.floor(xp / 100) + 1;
   const xpInCurrentLevel = xp % 100;
 
-  const handleQuestToggle = (questId: string, xpReward: number) => {
+  const handleQuestToggle = async (questId: string, xpReward: number) => {
+    let newCompleted: string[];
+    let newXp: number;
+    let newStreak = streak;
+
     if (completedQuests.includes(questId)) {
-      setCompletedQuests(completedQuests.filter(id => id !== questId));
-      setXp(Math.max(0, xp - xpReward));
+      newCompleted = completedQuests.filter(id => id !== questId);
+      newXp = Math.max(0, xp - xpReward);
     } else {
-      setCompletedQuests([...completedQuests, questId]);
-      setXp(xp + xpReward);
+      newCompleted = [...completedQuests, questId];
+      newXp = xp + xpReward;
       // Increment streak for completed quest
       if (completedQuests.length === 0 || Math.random() > 0.5) {
-        setStreak(streak + 1);
+        newStreak = streak + 1;
       }
+    }
+
+    setCompletedQuests(newCompleted);
+    setXp(newXp);
+    setStreak(newStreak);
+
+    try {
+      await fetch('/api/update-gamification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nim: student.nim,
+          xp: newXp,
+          streak: newStreak,
+          completedQuests: newCompleted.join(',')
+        })
+      });
+    } catch (e) {
+      console.error("Failed to update gamification data in DB:", e);
     }
   };
 
@@ -475,15 +510,17 @@ export function MhsDashboardPanel({
   // Real-time Leaderboard from database
   const leaderboard = (allStudents || []).map((s) => {
     const isCurrent = s.nim === student.nim;
-    let studentXp = 100;
+    let studentXp = s.xp ?? 100;
     if (isCurrent) {
       studentXp = xp;
     } else {
-      if (s.nama.includes("David")) studentXp = 850;
-      else if (s.nama.includes("Lestari")) studentXp = 720;
-      else if (s.nama.includes("Budi")) studentXp = 600;
-      else if (s.nama.includes("Siti")) studentXp = 110;
-      else studentXp = Math.round(s.gpa * 150);
+      if (!s.xp) {
+        if (s.nama.includes("David")) studentXp = 850;
+        else if (s.nama.includes("Lestari")) studentXp = 720;
+        else if (s.nama.includes("Budi")) studentXp = 600;
+        else if (s.nama.includes("Siti")) studentXp = 110;
+        else studentXp = Math.round(s.gpa * 150);
+      }
     }
     return {
       name: s.nama,

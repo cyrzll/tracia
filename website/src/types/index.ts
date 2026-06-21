@@ -41,6 +41,9 @@ export interface Student {
   semester: number;
   risk_probability: number;
   risk_level: string;
+  xp?: number;
+  streak?: number;
+  completedQuests?: string | null;
 }
 
 export interface Billing {
